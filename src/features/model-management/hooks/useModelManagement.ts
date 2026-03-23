@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export interface Formula {
   id: string;
@@ -42,13 +42,45 @@ const initialFormulas: Formula[] = [
   },
 ];
 
+// 🔧 localStorage 키
+const STORAGE_KEY = 'cost-analysis-formulas';
+
+// 📦 localStorage에서 수식 데이터 로드
+const loadFormulas = (): Formula[] => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (error) {
+    console.warn('localStorage 로드 실패:', error);
+  }
+  return initialFormulas; // 기본 데이터 반환
+};
+
+// 💾 localStorage에 수식 데이터 저장
+const saveFormulas = (formulas: Formula[]) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(formulas));
+    console.log('📦 수식 데이터 저장됨:', formulas.length, '개');
+  } catch (error) {
+    console.warn('localStorage 저장 실패:', error);
+  }
+};
+
 export const useModelManagement = () => {
-  const [formulas, setFormulas] = useState<Formula[]>(initialFormulas);
+  const [formulas, setFormulas] = useState<Formula[]>(loadFormulas);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
   const [editTarget, setEditTarget] = useState<Formula | null>(null);
   const [form, setForm] = useState({ name: '', badge: 'sub' as Formula['badge'], expression: '', description: '', variables: '' });
   const [toast, setToast] = useState<{ open: boolean; severity: 'success' | 'error' | 'info'; message: string }>({ open: false, severity: 'info', message: '' });
+  const [lastAddedFormulaId, setLastAddedFormulaId] = useState<string>('');
+
+  // 📦 formulas 변경 시 localStorage에 자동 저장
+  useEffect(() => {
+    saveFormulas(formulas);
+  }, [formulas]);
 
   const openAdd = () => {
     setModalMode('add');
@@ -67,7 +99,9 @@ export const useModelManagement = () => {
   const handleSave = () => {
     const vars = form.variables.split(',').map(v => v.trim()).filter(Boolean);
     if (modalMode === 'add') {
-      setFormulas(prev => [...prev, { id: `f${Date.now()}`, name: form.name, badge: form.badge, expression: form.expression, description: form.description, variables: vars }]);
+      const newId = `f${Date.now()}`;
+      setFormulas(prev => [...prev, { id: newId, name: form.name, badge: form.badge, expression: form.expression, description: form.description, variables: vars }]);
+      setLastAddedFormulaId(newId); // 새로 추가된 수식 ID 저장
       setToast({ open: true, severity: 'success', message: '수식이 추가되었습니다.' });
     } else if (editTarget) {
       setFormulas(prev => prev.map(f => f.id === editTarget.id ? { ...f, name: form.name, badge: form.badge, expression: form.expression, description: form.description, variables: vars } : f));
@@ -87,9 +121,14 @@ export const useModelManagement = () => {
     }
   };
 
+  const clearLastAddedFormula = () => {
+    setLastAddedFormulaId('');
+  };
+
   return {
     formulas, modalOpen, setModalOpen,
     modalMode, editTarget, form, setForm, toast, setToast,
     openAdd, openEdit, handleSave, handleDelete,
+    lastAddedFormulaId, clearLastAddedFormula,
   };
 };

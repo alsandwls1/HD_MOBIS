@@ -57,7 +57,7 @@ import StatusBadge from './components/StatusBadge';
 import MiniConfidence from './components/MiniConfidence';
 import ListViewRow from './components/ListView';
 import RelationView from './components/RelationView';
-import OriginalViewDialog from './components/OriginalViewDialog';
+import ExcelViewerDialog from './components/ExcelViewerDialog';
 import { useAnalysisPage } from './hooks/useAnalysisPage';
 
 const tthSx = { fontSize: 11, fontWeight: 600, color: '#86868b', py: 1, px: 1.5, borderBottom: '1px solid #e5e5e7', bgcolor: '#fafafa' };
@@ -356,7 +356,14 @@ const AnalysisPage: React.FC = () => {
         )}
 
         {/* 원본보기 다이얼로그 */}
-        <OriginalViewDialog open={originalViewOpen} onClose={() => setOriginalViewOpen(false)} highlightedCell={highlightedCell} />
+        <ExcelViewerDialog 
+          open={originalViewOpen} 
+          onClose={() => setOriginalViewOpen(false)} 
+          highlightedCell={highlightedCell}
+          fileName="sample_data.xlsx"
+          // excelUrl="/sample_excel/sample_data.xlsx" // URL 로드 시 CORS 오류 발생
+          // excelFile={uploadedFile} // 업로드된 File 객체 (향후 기능)
+        />
 
         {/* Navigation */}
         <Box sx={{ display: 'flex', justifyContent: 'flex-start', mt: 3 }}>

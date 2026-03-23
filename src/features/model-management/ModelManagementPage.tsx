@@ -2,35 +2,93 @@
  * @fileoverview 원가 모델관리 페이지
  * @description 원가 구조 수식 및 기준을 카드 형태로 관리
  */
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Box, Typography, Button, Paper, Chip, Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, MenuItem, Snackbar, Alert,
+  TextField, MenuItem, Snackbar, Alert, Tabs, Tab,
 } from '@mui/material';
-import { Edit, Delete, Add } from '@mui/icons-material';
+import { Edit, Delete, Add, AccountTree, Settings } from '@mui/icons-material';
 import { useModelManagement, badgeConfig } from './hooks/useModelManagement';
+import SimpleKnowledgeGraphTab from './components/SimpleKnowledgeGraphTab';
 
 const ModelManagementPage: React.FC = () => {
+  const [currentTab, setCurrentTab] = useState(0);
   const {
     formulas, modalOpen, setModalOpen,
     modalMode, form, setForm, toast, setToast,
     openAdd, openEdit, handleSave, handleDelete,
+    lastAddedFormulaId, clearLastAddedFormula,
   } = useModelManagement();
 
+  // 🔄 새 수식 하이라이트 완료 후 처리
+  const handleNewFormulaHighlighted = useCallback(() => {
+    clearLastAddedFormula();
+  }, [clearLastAddedFormula]);
+
+  // 🎯 탭 변경 처리
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setCurrentTab(newValue);
+    
+    // 지식그래프 탭으로 이동할 때 로그 출력
+    if (newValue === 1) {
+      console.log('🧠 지식그래프 탭으로 전환:', {
+        수식개수: formulas.length,
+        시간: new Date().toLocaleTimeString()
+      });
+    }
+  };
+
   return (
-    <Box>
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* 📊 페이지 헤더 */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
         <Box>
           <Typography variant="h5" fontWeight={700}>원가 모델관리</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>원가 구조 수식 및 기준을 관리합니다</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            원가 구조 수식 및 지식그래프를 관리합니다
+          </Typography>
         </Box>
-        <Button variant="contained" startIcon={<Add />} onClick={openAdd}
-          sx={{ bgcolor: '#003875', '&:hover': { bgcolor: '#002a5c' }, borderRadius: 2, px: 3 }}>
-          새 수식 추가
-        </Button>
+        {currentTab === 0 && (
+          <Button variant="contained" startIcon={<Add />} onClick={openAdd}
+            sx={{ bgcolor: '#003875', '&:hover': { bgcolor: '#002a5c' }, borderRadius: 2, px: 3 }}>
+            새 수식 추가
+          </Button>
+        )}
       </Box>
 
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {/* 📋 탭 네비게이션 */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs 
+          value={currentTab} 
+          onChange={handleTabChange}
+          sx={{
+            '& .MuiTab-root': {
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: 14,
+            }
+          }}
+        >
+          <Tab 
+            icon={<Settings />} 
+            iconPosition="start" 
+            label="모델 관리" 
+            sx={{ minHeight: 48 }}
+          />
+          <Tab 
+            icon={<AccountTree />} 
+            iconPosition="start" 
+            label="지식그래프" 
+            sx={{ minHeight: 48 }}
+          />
+        </Tabs>
+      </Box>
+
+      {/* 📊 탭 콘텐츠 */}
+      <Box sx={{ flex: 1, overflow: 'hidden' }}>
+        {currentTab === 0 ? (
+          // 🔧 모델 관리 탭
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, height: '100%', overflow: 'auto' }}>
         {formulas.map(f => {
           const badge = badgeConfig[f.badge];
           return (
@@ -56,6 +114,15 @@ const ModelManagementPage: React.FC = () => {
             </Paper>
           );
         })}
+          </Box>
+        ) : (
+          // 🧠 지식그래프 탭 (실제 데이터 props로 전달, localStorage로 동기화)
+          <SimpleKnowledgeGraphTab 
+            formulas={formulas}
+            newlyAddedFormulaId={lastAddedFormulaId}
+            onNewFormulaHighlighted={handleNewFormulaHighlighted}
+          />
+        )}
       </Box>
 
       <Dialog open={modalOpen} onClose={() => setModalOpen(false)} maxWidth="sm" fullWidth>

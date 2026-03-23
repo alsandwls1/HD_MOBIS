@@ -25,14 +25,36 @@
 
 import React from 'react';
 import { Outlet, Navigate } from 'react-router-dom';
-import { Box, AppBar, Toolbar, Typography, IconButton, Badge, Avatar } from '@mui/material';
-import { Notifications } from '@mui/icons-material';
+import { Box, AppBar, Toolbar, Typography, IconButton, Badge, Avatar, Tooltip } from '@mui/material';
+import { Notifications, Help as HelpIcon } from '@mui/icons-material';
 import Sidebar from './Sidebar';
+import ThemeSwitcher from '../components/ThemeSwitcher';
+import OnboardingTour, { defaultOnboardingSteps } from '../components/OnboardingTour';
+import SmartGuide from '../components/SmartGuide';
+import UserPreferences from '../components/UserPreferences';
 import { useMainLayout } from './hooks/useMainLayout';
 
 const MainLayout: React.FC = () => {
   // 🎛️ 레이아웃 상태 및 사용자 정보 관리 훅
   const { collapsed, setCollapsed, user, isAuthenticated, sidebarWidth } = useMainLayout();
+  
+  // 🎯 사용성 기능 상태
+  const [onboardingOpen, setOnboardingOpen] = React.useState(false);
+  const [showSmartGuide, setShowSmartGuide] = React.useState(true);
+
+  // 🎯 첫 방문자 온보딩 체크
+  React.useEffect(() => {
+    const isFirstVisit = !localStorage.getItem('onboarding-completed');
+    const hasSeenTour = localStorage.getItem('tour-seen') === 'true';
+    
+    if (isFirstVisit && !hasSeenTour) {
+      // 2초 후 온보딩 시작
+      setTimeout(() => {
+        setOnboardingOpen(true);
+        localStorage.setItem('tour-seen', 'true');
+      }, 2000);
+    }
+  }, []);
 
   // 🔐 인증 확인: 로그인하지 않은 경우 로그인 페이지로 리다이렉트
   if (!isAuthenticated) {
@@ -59,6 +81,13 @@ const MainLayout: React.FC = () => {
           sx={{ bgcolor: '#fff', borderBottom: '1px solid #e0e0e0' }}
         >
           <Toolbar sx={{ justifyContent: 'flex-end', gap: 1 }}>
+            
+            {/* 💡 도움말 버튼 */}
+            <Tooltip title="사용 가이드 및 도움말">
+              <IconButton onClick={() => setOnboardingOpen(true)}>
+                <HelpIcon sx={{ color: '#666' }} />
+              </IconButton>
+            </Tooltip>
             
             {/* 🔔 알림 아이콘 (배지 포함) */}
             <IconButton>
@@ -91,12 +120,24 @@ const MainLayout: React.FC = () => {
         <Box sx={{ 
           flex: 1,
           p: 3,
-          bgcolor: '#F5F7FA'
+          bgcolor: '#F5F7FA',
+          position: 'relative'
         }}>
+          {/* 💡 스마트 가이드 (상단 고정) */}
+          <SmartGuide visible={showSmartGuide} onDismiss={() => setShowSmartGuide(false)} />
+          
           {/* 🔄 자식 라우트 컴포넌트가 여기에 렌더링됨 */}
           <Outlet />
         </Box>
       </Box>
+      
+      {/* 🎯 온보딩 투어 */}
+      <OnboardingTour 
+        open={onboardingOpen}
+        onClose={() => setOnboardingOpen(false)}
+        steps={defaultOnboardingSteps}
+        onComplete={() => console.log('온보딩 완료!')}
+      />
     </Box>
   );
 };

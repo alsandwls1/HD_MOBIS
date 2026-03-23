@@ -61,7 +61,7 @@ const ParsingPage: React.FC = () => {
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: C.bg }}>
       <Box sx={{ px: 3, pt: 2.5 }}>
-        <Typography sx={{ fontSize: 20, fontWeight: 700, mb: 0.25, color: C.dark }}>견적서 파싱</Typography>
+        <Typography sx={{ fontSize: 20, fontWeight: 700, mb: 0.5, color: C.dark }}>견적서 파싱</Typography>
         <Typography sx={{ fontSize: 13, color: C.gray, mb: 2 }}>파일을 업로드하면 AI가 자동으로 데이터를 추출합니다</Typography>
       </Box>
 

@@ -19,9 +19,10 @@
 
 import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
+import { CssBaseline } from '@mui/material';
 import MainLayout from './shared/layouts/MainLayout';
 import { AuthProvider } from './features/auth/AuthContext';
+import { ThemeProvider } from './shared/contexts/ThemeContext';
 
 // 📊 메인 워크플로우 페이지들 (견적서 처리 4단계)
 import ParsingPage from './features/parsing/ParsingPage';               // 1단계: 파싱/업로드
@@ -37,19 +38,8 @@ import HistoryPage from './features/history/HistoryPage';               // 📜 
 import SettingsPage from './features/settings/SettingsPage';           // 🔧 시스템 설정
 import LoginPage from './features/auth/LoginPage';                     // 🔐 로그인 (별도 레이아웃)
 
-// 🎨 현대모비스 브랜딩 테마 설정
-const theme = createTheme({
-  palette: {
-    primary: { main: '#e60012' },      // 현대모비스 대표 빨간색
-    secondary: { main: '#666666' },    // 회색 (텍스트, 아이콘)
-    error: { main: '#e60012' },        // 에러 색상 (빨간색 통일)
-    warning: { main: '#ff9500' },      // 경고 색상 (주황색)
-    success: { main: '#34c759' },      // 성공 색상 (초록색)
-  },
-  typography: { 
-    fontFamily: '"Noto Sans KR", Roboto, sans-serif'  // 한글 최적화 폰트
-  },
-});
+// 🎨 테마 시스템은 ThemeProvider에서 관리됨
+// 현대모비스 테마와 Toss 테마 간 전환 가능
 
 /**
  * 🚀 메인 App 컴포넌트
@@ -62,7 +52,7 @@ const theme = createTheme({
  */
 export default function App() {
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider initialTheme="hyundai">
       {/* 🎨 브라우저 기본 CSS 초기화 (margin, padding 등) */}
       <CssBaseline />
       
