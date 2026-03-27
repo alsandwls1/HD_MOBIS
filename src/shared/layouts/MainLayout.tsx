@@ -65,14 +65,29 @@ const MainLayout: React.FC = () => {
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       {/* 🏗️ 전체 레이아웃 컨테이너 (좌우 배치) */}
       
-      {/* 📄 좌측 사이드바 (메뉴 네비게이션) */}
-      <Sidebar 
-        collapsed={collapsed}                              
-        onToggle={() => setCollapsed(!collapsed)}          
-      />
+      {/* 📄 좌측 사이드바 (고정형 메뉴 네비게이션) */}
+      <Box sx={{ 
+        position: 'fixed',
+        left: 0,
+        top: 0,
+        height: '100vh',
+        zIndex: 1200,
+        overflow: 'auto'
+      }}>
+        <Sidebar 
+          collapsed={collapsed}                              
+          onToggle={() => setCollapsed(!collapsed)}          
+        />
+      </Box>
 
-      {/* 📱 우측 메인 영역 (헤더 + 콘텐츠) */}
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      {/* 📱 우측 메인 영역 (헤더 + 콘텐츠) - 사이드바 너비만큼 마진 */}
+      <Box sx={{ 
+        flex: 1, 
+        display: 'flex', 
+        flexDirection: 'column',
+        marginLeft: collapsed ? '93px' : '240px',
+        transition: 'margin-left 0.3s ease'
+      }}>
         
         {/* 🎯 상단 헤더 (고정형 AppBar) */}
         <AppBar 

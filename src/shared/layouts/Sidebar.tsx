@@ -22,7 +22,6 @@ const subMenuItems = [
   { label: '모델관리', icon: <ModelTraining />, path: '/models' },
   { label: '이력/알림', icon: <History />, path: '/history' },
   { label: '설정', icon: <Settings />, path: '/settings' },
-  { label: '리엑트테스트용', icon: <Settings />, path: '/board' },
 ];
 
 interface SidebarProps {
@@ -39,9 +38,27 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
   return (
     <Box sx={{
       width: collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_WIDTH,
-      minHeight: '100vh', bgcolor: '#0a1628', color: '#fff',
-      transition: 'width 0.3s', overflow: 'hidden', flexShrink: 0,
-      display: 'flex', flexDirection: 'column',
+      height: '100vh', 
+      bgcolor: '#0a1628', 
+      color: '#fff',
+      transition: 'width 0.3s', 
+      overflowY: 'auto',
+      overflowX: 'hidden',
+      display: 'flex', 
+      flexDirection: 'column',
+      '&::-webkit-scrollbar': {
+        width: '6px',
+      },
+      '&::-webkit-scrollbar-track': {
+        bgcolor: 'rgba(255, 255, 255, 0.1)',
+      },
+      '&::-webkit-scrollbar-thumb': {
+        bgcolor: 'rgba(255, 255, 255, 0.2)',
+        borderRadius: '3px',
+        '&:hover': {
+          bgcolor: 'rgba(255, 255, 255, 0.3)',
+        },
+      },
     }}>
       {/* 로고 + 토글 버튼 */}
       <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 64 }}>

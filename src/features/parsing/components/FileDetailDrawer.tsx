@@ -1,8 +1,8 @@
 import React from 'react';
 import {
-  Box, Typography, IconButton, Button, LinearProgress, Drawer,
+  Box, Typography, IconButton, Button, LinearProgress, Drawer, Chip,
 } from '@mui/material';
-import { Close } from '@mui/icons-material';
+import { Close, CheckCircle, Schedule, Error } from '@mui/icons-material';
 import { C } from '../../../shared/constants/colors';
 import { statusConfig } from '../data/mockData';
 import type { FileItem } from '../types';
@@ -13,103 +13,636 @@ interface FileDetailDrawerProps {
   onVerify: () => void;
 }
 
-const FileDetailDrawer: React.FC<FileDetailDrawerProps> = ({ file, onClose, onVerify }) => (
-  <Drawer anchor="right" open={!!file} onClose={onClose} PaperProps={{ sx: { width: 400 } }}>
-    {file && (
-      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        {/* 헤더 */}
-        <Box sx={{ p: 2, borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <Box>
-            <Typography sx={{ fontSize: 15, fontWeight: 600 }}>{file.name}</Typography>
-            <Typography sx={{ fontSize: 12, color: statusConfig[file.status].color, mt: 0.25 }}>
-              {statusConfig[file.status].emoji} {statusConfig[file.status].label}
-            </Typography>
-          </Box>
-          <IconButton size="small" onClick={onClose}><Close /></IconButton>
-        </Box>
+const FileDetailDrawer: React.FC<FileDetailDrawerProps> = ({ file, onClose, onVerify }) => {
+  // 상태별 설정 (파싱 카드와 동일)
+  const getStatusConfig = (status: string) => {
+    switch (status) {
+      case 'extracting':
+        return { 
+          color: '#ff9800', 
+          icon: <Schedule sx={{ fontSize: 16 }} />, 
+          label: '추출중', 
+          bgColor: '#fff3e0' 
+        };
+      case 'complete':
+        return { 
+          color: '#4caf50', 
+          icon: <CheckCircle sx={{ fontSize: 16 }} />, 
+          label: '완료', 
+          bgColor: '#e8f5e8' 
+        };
+      case 'analyzing':
+        return { 
+          color: '#9c27b0', 
+          icon: <CheckCircle sx={{ fontSize: 16 }} />, 
+          label: '분석중', 
+          bgColor: '#f3e5f5' 
+        };
+      case 'failed':
+        return { 
+          color: '#f44336', 
+          icon: <Error sx={{ fontSize: 16 }} />, 
+          label: '실패', 
+          bgColor: '#ffebee' 
+        };
+      default:
+        return { 
+          color: '#9e9e9e', 
+          icon: <Schedule sx={{ fontSize: 16 }} />, 
+          label: '알 수 없음', 
+          bgColor: '#f5f5f5' 
+        };
+    }
+  };
 
-        {/* 내용 */}
-        <Box sx={{ flex: 1, p: 2, overflow: 'auto' }}>
-          <Typography sx={{ fontSize: 13, fontWeight: 600, mb: 1.5 }}>파일 정보</Typography>
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5, mb: 3 }}>
-            {[
-              { label: '파일 크기', value: file.fileSize || '-' },
-              { label: '시트 수', value: file.sheets ? `${file.sheets}개` : '-' },
-              { label: '업로드일', value: file.uploadDate },
-              { label: '진행률', value: `${file.progress}%` },
-            ].map(item => (
-              <Box key={item.label}>
-                <Typography sx={{ fontSize: 11, color: C.gray }}>{item.label}</Typography>
-                <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{item.value}</Typography>
-              </Box>
-            ))}
-          </Box>
+  const statusConf = getStatusConfig(file?.status || 'pending');
 
-          {file.status === 'complete' && (
-            <>
-              <Typography sx={{ fontSize: 13, fontWeight: 600, mb: 1.5 }}>추출 결과 요약</Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
-                <Box><Typography sx={{ fontSize: 11, color: C.gray }}>파싱 항목</Typography><Typography sx={{ fontSize: 13, fontWeight: 600, color: C.blue }}>{file.parsedItems}건</Typography></Box>
-                <Box><Typography sx={{ fontSize: 11, color: C.gray }}>이상치</Typography><Typography sx={{ fontSize: 13, fontWeight: 600, color: C.red }}>{file.anomalies}건</Typography></Box>
-                <Box><Typography sx={{ fontSize: 11, color: C.gray }}>신뢰도</Typography><Typography sx={{ fontSize: 13, fontWeight: 600, color: C.green }}>92%</Typography></Box>
-                <Box><Typography sx={{ fontSize: 11, color: C.gray }}>소요시간</Typography><Typography sx={{ fontSize: 13, fontWeight: 600 }}>1분 48초</Typography></Box>
-              </Box>
-            </>
-          )}
-
-          {file.status === 'extracting' && (
-            <>
-              <Typography sx={{ fontSize: 13, fontWeight: 600, mb: 1 }}>추출 진행</Typography>
-              <Box sx={{ mb: 1 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, mb: 0.5 }}>
-                  <span>전체 진행률</span>
-                  <span style={{ fontWeight: 600, color: C.orange }}>{file.progress}%</span>
+  return (
+    <Drawer anchor="right" open={!!file} onClose={onClose} PaperProps={{ sx: { width: 480, bgcolor: '#fafafa' } }}>
+      {file && (
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          {/* 🎨 Toss 스타일 헤더 (파싱 카드와 동일) */}
+          <Box sx={{ 
+            p: 3, 
+            pb: 2, 
+            bgcolor: 'white',
+            borderBottom: '1px solid #f2f4f6',
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'flex-start' 
+          }}>
+            <Box sx={{ flex: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                <Box
+                  sx={{
+                    px: 1.5,
+                    py: 0.5,
+                    backgroundColor: `${statusConf.color}15`,
+                    color: statusConf.color,
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    borderRadius: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5
+                  }}
+                >
+                  {statusConf.icon}
+                  {statusConf.label}
                 </Box>
-                <LinearProgress variant="determinate" value={file.progress} sx={{ height: 8, borderRadius: 4, bgcolor: '#e5e5e7', '& .MuiLinearProgress-bar': { bgcolor: C.orange } }} />
               </Box>
-              <Box sx={{ fontSize: 12, color: C.gray, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-                <div>✅ Sheet 1 — 구조 분석 완료</div>
-                <div>✅ Sheet 2 — 셀 매핑 완료</div>
-                <div>⏳ Sheet 3 — 데이터 검증 중...</div>
-              </Box>
-            </>
-          )}
-
-          {file.status === 'failed' && (
-            <>
-              <Typography sx={{ fontSize: 13, fontWeight: 600, mb: 1 }}>실패 정보</Typography>
-              <Box sx={{ bgcolor: '#fff5f5', border: `1px solid ${C.red}30`, borderRadius: '8px', p: 2 }}>
-                <Typography sx={{ fontSize: 13, fontWeight: 600, mb: 1 }}>⚠️ 파싱 오류 — 양식 인식 실패</Typography>
-                <Typography sx={{ fontSize: 12, color: '#555', lineHeight: 1.6 }}>
-                  Sheet 1의 셀 구조를 인식할 수 없습니다.<br />
-                  원인: 병합 셀이 다중 중첩(3단계 이상)되어 있어 자동 파싱에 실패했습니다.<br /><br />
-                  <strong>권장 조치:</strong><br />
-                  • 엑셀 파일에서 불필요한 병합 셀 해제 후 재업로드<br />
-                  • 수동 매핑 모드로 전환하여 직접 영역 지정
+              
+              <Typography sx={{ 
+                fontSize: 18, 
+                fontWeight: 700, 
+                color: '#191f28',
+                mb: 1,
+                lineHeight: 1.3,
+                wordBreak: 'break-all'
+              }}>
+                {file.name}
+              </Typography>
+              
+              {/* 기본 파일 정보 (파싱 카드와 동일한 스타일) */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                <Typography sx={{ fontSize: 14, color: '#8b95a1', fontWeight: 500 }}>
+                  📁 {file.fileSize || '0 Bytes'}
+                </Typography>
+                <Typography sx={{ fontSize: 14, color: '#8b95a1', fontWeight: 500 }}>
+                  📅 {file.uploadDate}
                 </Typography>
               </Box>
-            </>
-          )}
-        </Box>
+              
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mt: 0.5 }}>
+                <Typography sx={{ fontSize: 14, color: '#8b95a1', fontWeight: 500 }}>
+                  👤 {file.uploader || '김남중'}
+                </Typography>
+                <Typography sx={{ fontSize: 14, color: '#8b95a1', fontWeight: 500 }}>
+                  🏢 {file.department || '개발팀'}
+                </Typography>
+              </Box>
+            </Box>
+            
+            <IconButton 
+              size="small" 
+              onClick={onClose}
+              sx={{ 
+                bgcolor: '#f8f9fa',
+                '&:hover': { bgcolor: '#e9ecef' }
+              }}
+            >
+              <Close sx={{ fontSize: 18 }} />
+            </IconButton>
+          </Box>
 
-        {/* 하단 액션 */}
-        <Box sx={{ p: 2, borderTop: `1px solid ${C.border}`, display: 'flex', gap: 1 }}>
-          {file.status === 'complete' && (
-            <Button fullWidth variant="contained" onClick={() => { onClose(); onVerify(); }}
-              sx={{ bgcolor: C.blue, textTransform: 'none', py: 1.25, '&:hover': { bgcolor: '#0077ED' } }}>
-              검증하기 →
-            </Button>
-          )}
-          {file.status === 'failed' && (
-            <>
-              <Button fullWidth variant="outlined" sx={{ textTransform: 'none' }}>수동 매핑</Button>
-              <Button fullWidth variant="contained" sx={{ bgcolor: C.blue, textTransform: 'none' }}>재시도</Button>
-            </>
-          )}
+          {/* 🔄 동적 콘텐츠 영역 (파싱 카드와 동일한 디자인) */}
+          <Box sx={{ flex: 1, p: 3, pt: 2, overflow: 'auto' }}>
+            
+            {/* ⏳ 추출 중 상태 */}
+            {file.status === 'extracting' && (
+              <Box sx={{ p: 2.5, bgcolor: '#fff3e0', borderRadius: '12px', border: '1px solid #ffcc02' }}>
+                <Typography sx={{ 
+                  fontSize: 14, 
+                  color: '#e65100', 
+                  fontWeight: 700,
+                  mb: 2,
+                  textAlign: 'center'
+                }}>
+                  📊 데이터 추출 중
+                </Typography>
+                
+                {/* 전체 진행률 */}
+                <Box sx={{ mb: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography sx={{ fontSize: 12, color: '#e65100', fontWeight: 600 }}>
+                      전체 진행률
+                    </Typography>
+                    <Typography sx={{ fontSize: 12, color: '#e65100', fontWeight: 800 }}>
+                      {file.progress}%
+                    </Typography>
+                  </Box>
+                  <LinearProgress 
+                    variant="determinate" 
+                    value={file.progress} 
+                    sx={{ 
+                      height: 8, 
+                      borderRadius: '8px', 
+                      bgcolor: '#ffecb3',
+                      '& .MuiLinearProgress-bar': { 
+                        bgcolor: '#ff9800',
+                        borderRadius: '8px'
+                      } 
+                    }} 
+                  />
+                </Box>
+                
+                <Typography sx={{ 
+                  fontSize: 12, 
+                  color: '#e65100',
+                  textAlign: 'center',
+                  lineHeight: 1.4
+                }}>
+                  Excel 파일을 분석하고 데이터를 추출하고 있어요
+                </Typography>
+
+                {/* 🎯 시트별 진행상태 - 라운드 렉텡글 디자인 */}
+                <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid #ffcc02' }}>
+                  <Typography sx={{ 
+                    fontSize: 12, 
+                    color: '#e65100',
+                    fontWeight: 600,
+                    mb: 1.5
+                  }}>
+                    시트별 진행 상태
+                  </Typography>
+                  
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {[
+                      { name: 'Sheet 1', status: 'complete', desc: '구조 분석 완료' },
+                      { name: 'Sheet 2', status: 'complete', desc: '셀 매핑 완료' },
+                      { name: 'Sheet 3', status: 'processing', desc: '데이터 검증 중...' },
+                      { name: 'Sheet 4', status: 'pending', desc: '대기 중' }
+                    ].map((sheet, index) => (
+                      <Box 
+                        key={sheet.name}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1.5,
+                          p: 1.5,
+                          borderRadius: '12px',
+                          bgcolor: sheet.status === 'complete' ? '#e8f5e8' : 
+                                   sheet.status === 'processing' ? '#fff3e0' : '#f5f5f5',
+                          border: `1px solid ${
+                            sheet.status === 'complete' ? '#4caf50' : 
+                            sheet.status === 'processing' ? '#ff9800' : '#e0e0e0'
+                          }30`
+                        }}
+                      >
+                        <Box sx={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          bgcolor: sheet.status === 'complete' ? '#4caf50' : 
+                                   sheet.status === 'processing' ? '#ff9800' : '#9e9e9e',
+                          color: 'white',
+                          fontSize: 12,
+                          fontWeight: 700
+                        }}>
+                          {sheet.status === 'complete' ? '✓' : 
+                           sheet.status === 'processing' ? '⟳' : index + 1}
+                        </Box>
+                        
+                        <Box sx={{ flex: 1 }}>
+                          <Typography sx={{ 
+                            fontSize: 13, 
+                            fontWeight: 600,
+                            color: sheet.status === 'complete' ? '#2e7d32' : 
+                                   sheet.status === 'processing' ? '#e65100' : '#757575'
+                          }}>
+                            {sheet.name}
+                          </Typography>
+                          <Typography sx={{ 
+                            fontSize: 11, 
+                            color: sheet.status === 'complete' ? '#4caf50' : 
+                                   sheet.status === 'processing' ? '#ff9800' : '#9e9e9e',
+                            fontWeight: 500
+                          }}>
+                            {sheet.desc}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+              </Box>
+            )}
+
+            {/* ✅ 추출 완료 상태 (파싱 카드와 동일) */}
+            {(file.status === 'complete' || file.status === 'analyzing') && (
+              <Box sx={{ p: 2.5, bgcolor: '#f0fdf4', borderRadius: '12px', border: '1px solid #dcfce7' }}>
+                <Typography sx={{ 
+                  fontSize: 14, 
+                  color: '#15803d', 
+                  fontWeight: 700,
+                  mb: 2,
+                  textAlign: 'center'
+                }}>
+                  ✨ 추출 완료
+                </Typography>
+                
+                {/* 📊 추출 결과 요약 */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
+                  <Box sx={{ textAlign: 'center', flex: 1 }}>
+                    <Typography sx={{ 
+                      fontSize: 20, 
+                      fontWeight: 800, 
+                      color: '#0064ff',
+                      lineHeight: 1
+                    }}>
+                      {file.parsedItems || 156}
+                    </Typography>
+                    <Typography sx={{ 
+                      fontSize: 12, 
+                      color: '#15803d',
+                      fontWeight: 500
+                    }}>
+                      파싱 항목
+                    </Typography>
+                  </Box>
+                  
+                  <Box sx={{ textAlign: 'center', flex: 1 }}>
+                    <Typography sx={{ 
+                      fontSize: 20, 
+                      fontWeight: 800, 
+                      color: '#00c896',
+                      lineHeight: 1
+                    }}>
+                      {(file.parsedItems && file.anomalies) ? 
+                        Math.round(((file.parsedItems - file.anomalies) / file.parsedItems) * 100) : 
+                        94
+                      }%
+                    </Typography>
+                    <Typography sx={{ 
+                      fontSize: 12, 
+                      color: '#15803d',
+                      fontWeight: 500
+                    }}>
+                      정확도
+                    </Typography>
+                  </Box>
+                  
+                  <Box sx={{ textAlign: 'center', flex: 1 }}>
+                    <Typography sx={{ 
+                      fontSize: 20, 
+                      fontWeight: 800, 
+                      color: file.anomalies && file.anomalies > 0 ? '#ff5a5a' : '#8b95a1',
+                      lineHeight: 1
+                    }}>
+                      {file.anomalies || 3}
+                    </Typography>
+                    <Typography sx={{ 
+                      fontSize: 12, 
+                      color: '#15803d',
+                      fontWeight: 500
+                    }}>
+                      이상치
+                    </Typography>
+                  </Box>
+                </Box>
+
+                {/* 📋 추출된 카테고리 */}
+                <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #dcfce7' }}>
+                  <Typography sx={{ 
+                    fontSize: 12, 
+                    color: '#15803d',
+                    fontWeight: 600,
+                    mb: 1
+                  }}>
+                    추출된 카테고리
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+                    <Chip 
+                      label="재료비 (4건)" 
+                      size="small" 
+                      sx={{ 
+                        fontSize: 10, 
+                        height: 20,
+                        bgcolor: '#dbeafe', 
+                        color: '#1d4ed8',
+                        fontWeight: 600,
+                        '& .MuiChip-label': { px: 0.75 }
+                      }} 
+                    />
+                    <Chip 
+                      label="가공비 (3건)" 
+                      size="small" 
+                      sx={{ 
+                        fontSize: 10, 
+                        height: 20,
+                        bgcolor: '#fef3c7', 
+                        color: '#d97706',
+                        fontWeight: 600,
+                        '& .MuiChip-label': { px: 0.75 }
+                      }} 
+                    />
+                    <Chip 
+                      label="경비 (2건)" 
+                      size="small" 
+                      sx={{ 
+                        fontSize: 10, 
+                        height: 20,
+                        bgcolor: '#dcfce7', 
+                        color: '#059669',
+                        fontWeight: 600,
+                        '& .MuiChip-label': { px: 0.75 }
+                      }} 
+                    />
+                  </Box>
+                  
+                  {/* 🔧 부품 주요 정보 */}
+                  <Typography sx={{ 
+                    fontSize: 12, 
+                    color: '#15803d',
+                    fontWeight: 600,
+                    mb: 1.5
+                  }}>
+                    부품 주요 정보
+                  </Typography>
+                  
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                    {/* 주요 부품 1 */}
+                    <Box sx={{
+                      p: 1.5,
+                      borderRadius: '8px',
+                      bgcolor: '#f8fafc',
+                      border: '1px solid #e2e8f0'
+                    }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                        <Typography sx={{ 
+                          fontSize: 13, 
+                          fontWeight: 700,
+                          color: '#1e293b'
+                        }}>
+                          HEAD LINING ASSY
+                        </Typography>
+                        <Chip 
+                          label="재료비" 
+                          size="small"
+                          sx={{ 
+                            fontSize: 8, 
+                            height: 16,
+                            bgcolor: '#dbeafe', 
+                            color: '#1d4ed8',
+                            fontWeight: 600
+                          }}
+                        />
+                      </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+                        <Typography sx={{ color: '#64748b', fontWeight: 500 }}>
+                          수량: 1개
+                        </Typography>
+                        <Typography sx={{ color: '#0f172a', fontWeight: 600 }}>
+                          ₩285,000
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    {/* 주요 부품 2 */}
+                    <Box sx={{
+                      p: 1.5,
+                      borderRadius: '8px',
+                      bgcolor: '#f8fafc',
+                      border: '1px solid #e2e8f0'
+                    }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                        <Typography sx={{ 
+                          fontSize: 13, 
+                          fontWeight: 700,
+                          color: '#1e293b'
+                        }}>
+                          DOOR TRIM L/H
+                        </Typography>
+                        <Chip 
+                          label="가공비" 
+                          size="small"
+                          sx={{ 
+                            fontSize: 8, 
+                            height: 16,
+                            bgcolor: '#fef3c7', 
+                            color: '#d97706',
+                            fontWeight: 600
+                          }}
+                        />
+                      </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+                        <Typography sx={{ color: '#64748b', fontWeight: 500 }}>
+                          수량: 2개
+                        </Typography>
+                        <Typography sx={{ color: '#0f172a', fontWeight: 600 }}>
+                          ₩156,000
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    {/* 주요 부품 3 */}
+                    <Box sx={{
+                      p: 1.5,
+                      borderRadius: '8px',
+                      bgcolor: '#f8fafc',
+                      border: '1px solid #e2e8f0'
+                    }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                        <Typography sx={{ 
+                          fontSize: 13, 
+                          fontWeight: 700,
+                          color: '#1e293b'
+                        }}>
+                          CONSOLE BOX ASSY
+                        </Typography>
+                        <Chip 
+                          label="경비" 
+                          size="small"
+                          sx={{ 
+                            fontSize: 8, 
+                            height: 16,
+                            bgcolor: '#dcfce7', 
+                            color: '#059669',
+                            fontWeight: 600
+                          }}
+                        />
+                      </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+                        <Typography sx={{ color: '#64748b', fontWeight: 500 }}>
+                          수량: 1개
+                        </Typography>
+                        <Typography sx={{ color: '#0f172a', fontWeight: 600 }}>
+                          ₩78,500
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+
+                  {/* 총합계 */}
+                  <Box sx={{ 
+                    mt: 2, 
+                    pt: 1.5, 
+                    borderTop: '1px solid #dcfce7',
+                    display: 'flex', 
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <Typography sx={{ 
+                      fontSize: 13, 
+                      color: '#15803d',
+                      fontWeight: 700
+                    }}>
+                      총 원가
+                    </Typography>
+                    <Typography sx={{ 
+                      fontSize: 16, 
+                      color: '#0f172a',
+                      fontWeight: 800
+                    }}>
+                      ₩519,500
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            )}
+
+            {/* ⚠️ 오류 상태 (파싱 카드와 동일하게 간소화) */}
+            {file.status === 'failed' && (
+              <Box sx={{ p: 2.5, bgcolor: '#fff5f5', borderRadius: '12px', border: '1px solid #fee2e2' }}>
+                <Typography sx={{ 
+                  fontSize: 12, 
+                  color: '#dc2626',
+                  fontWeight: 600,
+                  mb: 1.5
+                }}>
+                  오류 사유
+                </Typography>
+                <Typography sx={{ 
+                  fontSize: 13, 
+                  color: '#991b1b',
+                  lineHeight: 1.4,
+                  fontWeight: 500,
+                  bgcolor: '#fee2e2',
+                  p: 1.5,
+                  borderRadius: '8px'
+                }}>
+                  Excel 파일 형식이 올바르지 않거나 데이터를 읽을 수 없습니다. 파일을 다시 확인해주세요.
+                </Typography>
+              </Box>
+            )}
+
+
+          </Box>
+
+          {/* 🎯 Toss 스타일 버튼 영역 (파싱 카드와 동일) */}
+          <Box sx={{ 
+            p: 3, 
+            pt: 2, 
+            mt: 'auto',
+            bgcolor: 'white',
+            borderTop: '1px solid #f2f4f6'
+          }}>
+            {(file.status === 'complete' || file.status === 'analyzing') && (
+              <Button 
+                fullWidth 
+                variant="contained" 
+                onClick={() => { onClose(); onVerify(); }}
+                sx={{ 
+                  fontSize: 16, 
+                  fontWeight: 700,
+                  textTransform: 'none', 
+                  bgcolor: '#0064ff',
+                  borderRadius: '12px', 
+                  py: 1.5,
+                  boxShadow: 'none',
+                  letterSpacing: '-0.3px',
+                  '&:hover': { 
+                    bgcolor: '#0056d3',
+                    boxShadow: 'none'
+                  } 
+                }}
+              >
+                검증하기
+              </Button>
+            )}
+            
+            {file.status === 'extracting' && (
+              <Button 
+                fullWidth
+                variant="outlined" 
+                disabled 
+                sx={{ 
+                  fontSize: 16, 
+                  fontWeight: 700,
+                  textTransform: 'none', 
+                  borderRadius: '12px',
+                  py: 1.5,
+                  borderColor: '#e5e8eb',
+                  color: '#8b95a1'
+                }}
+              >
+                처리중
+              </Button>
+            )}
+            
+            {file.status === 'failed' && (
+              <Button 
+                fullWidth
+                variant="contained" 
+                onClick={() => { onClose(); }}
+                sx={{ 
+                  fontSize: 16, 
+                  fontWeight: 700,
+                  textTransform: 'none', 
+                  borderRadius: '12px',
+                  py: 1.5,
+                  bgcolor: '#ff5a5a',
+                  boxShadow: 'none',
+                  letterSpacing: '-0.3px',
+                  '&:hover': { 
+                    bgcolor: '#ff4444',
+                    boxShadow: 'none'
+                  }
+                }}
+              >
+                오류 확인
+              </Button>
+            )}
+
+
+          </Box>
         </Box>
-      </Box>
-    )}
-  </Drawer>
-);
+      )}
+    </Drawer>
+  );
+};
 
 export default FileDetailDrawer;

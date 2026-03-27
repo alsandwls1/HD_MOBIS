@@ -720,8 +720,22 @@ const ParsedDataReviewPage: React.FC = () => {
 
   // 초기 노트 로드
   useEffect(() => {
-    const savedNotesData = JSON.parse(localStorage.getItem('cost-analysis-notes') || '[]');
-    setSavedNotes(savedNotesData);
+    try {
+      const savedNotesData = JSON.parse(localStorage.getItem('cost-analysis-notes') || '[]');
+      // 유효한 노트만 로드 (빈 배열이면 빈 상태 유지)
+      const validNotes = Array.isArray(savedNotesData) ? savedNotesData.filter(note => 
+        note && note.id && note.content && note.content.trim().length > 0
+      ) : [];
+      setSavedNotes(validNotes);
+      console.log('📝 노트 로드:', validNotes.length, '개');
+      console.log('🔍 히스토리 섹션 조건 체크:', {
+        hasSavedNotes: savedNotes && savedNotes.length > 0,
+        hasValidContent: savedNotes.some(note => note && note.content && note.content.trim())
+      });
+    } catch (error) {
+      console.error('노트 로드 실패:', error);
+      setSavedNotes([]);
+    }
   }, []);
 
   // 📊 수정된 항목 개수 계산
@@ -871,7 +885,7 @@ const ParsedDataReviewPage: React.FC = () => {
         </Typography>
         
         <Box sx={{ display: 'flex', gap: 1 }}>
-          {/* 📝 노트작성 버튼 */}
+          {/* 📝 노트작성 버튼 (개수 표시) */}
           <Button
             variant="outlined"
             color="primary"
@@ -890,7 +904,7 @@ const ParsedDataReviewPage: React.FC = () => {
               transition: 'all 0.2s ease'
             }}
           >
-            노트작성
+            노트작성 ({savedNotes.filter(n => n && n.content && n.content.trim()).length})
           </Button>
           
           {/* 💾 전체 저장 버튼 (표준뷰용) */}
@@ -1653,35 +1667,183 @@ const ParsedDataReviewPage: React.FC = () => {
             sx={{ mb: 2 }}
           />
 
-          {/* 📋 기존 노트 목록 (간단히) */}
-          {savedNotes.length > 0 && (
+          {/* 📋 노트 히스토리 (다이얼로그 내) */}
+          {savedNotes && savedNotes.length > 0 && savedNotes.some(note => note && note.content && note.content.trim()) && (
             <>
               <Divider sx={{ my: 2 }} />
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                📋 최근 노트 ({savedNotes.length}개)
-              </Typography>
-              <Box sx={{ maxHeight: 150, overflowY: 'auto' }}>
-                {savedNotes.slice(-3).reverse().map((note) => (
-                  <Paper key={note.id} variant="outlined" sx={{ p: 1.5, mb: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
-                      <Chip 
-                        size="small" 
-                        label={note.type === 'parsing' ? '🔍 파싱' : note.type === 'validation' ? '✅ 검증' : '💡 개선'} 
-                        variant="outlined"
-                      />
-                      <Typography variant="caption" color="text.secondary">
-                        {new Date(note.timestamp).toLocaleString()}
+              
+              <Box sx={{ 
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                mb: 2
+              }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  📋 노트 히스토리 ({savedNotes.filter(n => n && n.content && n.content.trim()).length}개)
+                </Typography>
+                
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="error"
+                  onClick={() => {
+                    localStorage.removeItem('cost-analysis-notes');
+                    setSavedNotes([]);
+                    console.log('🗑️ 노트 히스토리 초기화');
+                  }}
+                  sx={{ 
+                    fontSize: '10px',
+                    py: 0.25,
+                    px: 1,
+                    minWidth: 'auto'
+                  }}
+                >
+                  초기화
+                </Button>
+              </Box>
+              
+              <Box sx={{ maxHeight: 300, overflowY: 'auto', pr: 1 }}>
+                {savedNotes.filter(note => note && note.content && note.content.trim()).slice().reverse().map((note, index) => (
+                  <Paper 
+                    key={note.id} 
+                    variant="outlined" 
+                    sx={{ 
+                      p: 2, 
+                      mb: 1.5, 
+                      borderRadius: '8px',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        boxShadow: 2,
+                        borderColor: 'primary.main'
+                      }
+                    }}
+                  >
+                    {/* 노트 헤더 */}
+                    <Box sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'space-between', 
+                      mb: 1 
+                    }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Chip 
+                          size="small" 
+                          label={
+                            note.type === 'parsing' ? '🔍 파싱' : 
+                            note.type === 'validation' ? '✅ 검증' : 
+                            '💡 개선'
+                          } 
+                          variant="outlined"
+                          sx={{
+                            fontSize: '10px',
+                            height: '20px',
+                            bgcolor: 
+                              note.type === 'parsing' ? '#fff3e0' : 
+                              note.type === 'validation' ? '#e8f5e8' : 
+                              '#e3f2fd',
+                            color: 
+                              note.type === 'parsing' ? '#e65100' : 
+                              note.type === 'validation' ? '#2e7d32' : 
+                              '#1565c0'
+                          }}
+                        />
+                        {index === 0 && (
+                          <Chip 
+                            size="small" 
+                            label="최신" 
+                            sx={{ 
+                              bgcolor: '#ff5722', 
+                              color: 'white',
+                              fontSize: '9px',
+                              height: '18px'
+                            }}
+                          />
+                        )}
+                      </Box>
+                      
+                      <Typography variant="caption" sx={{ 
+                        color: 'text.secondary',
+                        fontSize: '10px',
+                        fontFamily: 'monospace'
+                      }}>
+                        {new Date(note.timestamp).toLocaleString('ko-KR', {
+                          month: '2-digit',
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
                       </Typography>
                     </Box>
-                    <Typography variant="body2" sx={{ 
-                      fontSize: 12, 
-                      color: 'text.secondary',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
+
+                    {/* 노트 내용 - 스크롤 가능 */}
+                    <Box sx={{
+                      maxHeight: '100px',
+                      overflowY: 'auto',
+                      bgcolor: '#fafafa',
+                      borderRadius: '6px',
+                      p: 1.5,
+                      border: '1px solid #f0f0f0',
+                      '&::-webkit-scrollbar': {
+                        width: '4px',
+                      },
+                      '&::-webkit-scrollbar-track': {
+                        bgcolor: '#f5f5f5',
+                        borderRadius: '2px',
+                      },
+                      '&::-webkit-scrollbar-thumb': {
+                        bgcolor: '#d0d0d0',
+                        borderRadius: '2px',
+                        '&:hover': {
+                          bgcolor: '#b0b0b0',
+                        },
+                      },
                     }}>
-                      {note.content.split('\n')[0].substring(0, 100)}...
-                    </Typography>
+                      <Typography variant="body2" sx={{ 
+                        fontSize: 12,
+                        lineHeight: 1.5,
+                        color: 'text.primary',
+                        whiteSpace: 'pre-wrap',
+                        fontFamily: 'inherit'
+                      }}>
+                        {note.content}
+                      </Typography>
+                    </Box>
+
+                    {/* 컨텍스트 정보 (간단히) */}
+                    {note.context && (
+                      <Box sx={{ 
+                        mt: 1,
+                        pt: 1,
+                        borderTop: '1px dashed #e0e0e0'
+                      }}>
+                        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                          {note.context.총항목수 && (
+                            <Chip 
+                              size="small" 
+                              label={`📊 ${note.context.총항목수}개`}
+                              variant="outlined"
+                              sx={{ fontSize: '9px', height: '16px' }}
+                            />
+                          )}
+                          {note.context.수정된항목 > 0 && (
+                            <Chip 
+                              size="small" 
+                              label={`✏️ ${note.context.수정된항목}개 수정`}
+                              variant="outlined"
+                              sx={{ fontSize: '9px', height: '16px' }}
+                            />
+                          )}
+                          {note.context.highlightedCell && (
+                            <Chip 
+                              size="small" 
+                              label={`🎯 ${note.context.highlightedCell}`}
+                              variant="outlined"
+                              sx={{ fontSize: '9px', height: '16px' }}
+                            />
+                          )}
+                        </Box>
+                      </Box>
+                    )}
                   </Paper>
                 ))}
               </Box>
@@ -1704,7 +1866,9 @@ const ParsedDataReviewPage: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      {/* 🔙 하단 네비게이션 */}
+
+
+      {/* 🔙 하단 네비게이션 - 히스토리 완전 제거 확인 */}
       <Box sx={{ 
         p: 3, 
         borderTop: '1px solid rgba(0, 0, 0, 0.1)',
