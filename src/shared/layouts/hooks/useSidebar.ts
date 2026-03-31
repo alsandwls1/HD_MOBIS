@@ -8,7 +8,8 @@ export const useSidebar = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    // GitHub Pages 호환을 위해 hash router 방식으로 변경
+    window.location.href = '/HD_MOBIS/#/login';
   };
 
   return { navigate, location, handleLogout };

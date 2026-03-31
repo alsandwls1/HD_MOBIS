@@ -1410,117 +1410,71 @@ const ParsedDataReviewPage: React.FC = () => {
 
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* 🎯 상단 헤더 - 분리된 레이아웃 */}
-      <Box sx={{ p: 3, borderBottom: '1px solid rgba(0, 0, 0, 0.1)' }}>
-        {/* 왼쪽: 타이틀, 설명, 파일 정보 통합 영역 */}
-        <Box sx={{ width: '100%' }}>
-          <Typography variant="h4" fontWeight={700} sx={{ mb: 1, fontSize: 20 }}>
-            🔍 파싱 데이터 검증
-          </Typography>
-          
-          <Typography variant="body1" color="text.secondary" sx={{ fontSize: 14, lineHeight: 1.5, mb: 2 }}>
-            왼쪽에서 각 컬럼을 클릭하면 오른쪽 Excel 원본의 해당 셀이 하이라이트됩니다.
-          </Typography>
-          
-          {/* 📄 파일 정보 - 텍스트 형태 */}
-          <Box sx={{ 
-            display: 'flex', 
-            flexWrap: 'wrap', 
-            gap: 2, 
-            p: 2,
-            bgcolor: '#f8f9fa',
-            borderRadius: 1,
-            border: '1px solid #e9ecef',
-            mb: 1
-          }}>
-            <Typography variant="body2" sx={{ fontSize: 12 }}>
-              <strong>파일명:</strong> {fileName}
-            </Typography>
-            <Typography variant="body2" sx={{ fontSize: 12 }}>
-              <strong>C.O. NO.:</strong> {fileMetadata.coNumber}
-            </Typography>
-            <Typography variant="body2" sx={{ fontSize: 12 }}>
-              <strong>품번:</strong> {fileMetadata.partNumber}
-            </Typography>
-            <Typography variant="body2" sx={{ fontSize: 12 }}>
-              <strong>품명:</strong> {fileMetadata.partName}
-            </Typography>
-            <Typography variant="body2" sx={{ fontSize: 12 }}>
-              <strong>협력사:</strong> {fileMetadata.supplier}
-            </Typography>
-            <Typography variant="body2" sx={{ fontSize: 12 }}>
-              <strong>담당자:</strong> {fileMetadata.manager}
-            </Typography>
-          </Box>
-          
-          {/* 💡 안내 메시지와 공통 버튼들 */}
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'space-between',
-            mt: 1
-          }}>
-            <Typography variant="body2" color="primary.main" sx={{ 
-              fontSize: 13, 
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.5
-            }}>
-              💡 더블클릭으로 셀 재매핑: 잘못 매핑된 셀을 더블클릭하여 올바른 셀을 재선택하세요.
-            </Typography>
-            
-            {/* 🔄 공통 버튼들 (표준/리스트 모두 적용) */}
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              {/* 📝 노트작성 버튼 */}
-              <Button
-                variant="outlined"
-                color="primary"
-                size="medium"
-                startIcon={<NoteAddIcon />}
-                onClick={() => setNoteDialogOpen(true)}
-                sx={{
-                  fontWeight: 600,
-                  px: 2.5,
-                  py: 0.75,
-                  boxShadow: 2,
-                  '&:hover': {
-                    boxShadow: 4,
-                    transform: 'translateY(-1px)'
-                  },
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                노트작성 ({savedNotes.filter((n: any) => n && n.fileId === currentFileId && n.content && n.content.trim()).length})
-              </Button>
-
-              {/* 💾 전체 저장 버튼 */}
-              <Button
-                variant="contained"
-                color="success"
-                size="medium"
-                startIcon={<SaveIcon />}
-                onClick={handleSaveAllChanges}
-                disabled={getModifiedItemsCount() === 0}
-                sx={{
-                  fontWeight: 600,
-                  px: 2.5,
-                  py: 0.75,
-                  boxShadow: 2,
-                  '&:hover': {
-                    boxShadow: 4,
-                    transform: 'translateY(-1px)'
-                  },
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                전체 저장 ({getModifiedItemsCount()}개)
-              </Button>
-            </Box>
-          </Box>
+      {/* 🎯 Header bar - Analysis 스타일 */}
+      <Box sx={{ borderBottom: '1px solid #e5e5e7', px: 3, py: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography sx={{ fontSize: 13, color: '#86868b' }}>검증 &gt;</Typography>
+          <Typography sx={{ fontSize: 16, fontWeight: 700 }}>{fileName || 'HEAD_LINING_원가계산서'}</Typography>
         </Box>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<NavigateBefore />}
+            onClick={() => navigate('/parsing')}
+            sx={{ textTransform: 'none', fontSize: 12, borderRadius: '6px', borderColor: '#e5e5e7', color: '#1d1d1f' }}
+          >
+            목록으로
+          </Button>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<NoteAddIcon />}
+            onClick={() => setNoteDialogOpen(true)}
+            sx={{ textTransform: 'none', fontSize: 12, borderRadius: '6px', borderColor: '#e5e5e7', color: '#1d1d1f' }}
+          >
+            노트작성 ({savedNotes.filter((n: any) => n && n.fileId === currentFileId && n.content && n.content.trim()).length})
+          </Button>
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<SaveIcon />}
+            onClick={handleSaveAllChanges}
+            disabled={getModifiedItemsCount() === 0}
+            sx={{ textTransform: 'none', fontSize: 12, borderRadius: '6px', bgcolor: '#0071e3', color: '#fff', '&:hover': { bgcolor: '#0077ED' } }}
+          >
+            전체 저장 ({getModifiedItemsCount()}개)
+          </Button>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={() => navigate('/analysis')}
+            sx={{ textTransform: 'none', fontSize: 12, borderRadius: '6px', bgcolor: '#34c759', color: '#fff', '&:hover': { bgcolor: '#2e7d32' } }}
+          >
+            분석으로 이동 →
+          </Button>
+        </Box>
+      </Box>
 
+      {/* Info Cards - Analysis 스타일 */}
+      <Box sx={{ display: 'flex', gap: 2, px: 3, py: 2, bgcolor: '#f5f5f7' }}>
+        {[
+          { label: 'E.O. NO.', value: fileMetadata.coNumber || 'EO-2024-1201' },
+          { label: '품번 / 품명', value: `${fileMetadata.partNumber || 'HL-2024-001'} · ${fileMetadata.partName || 'HEAD LINING'}` },
+          { label: '협력사 / 담당자', value: `${fileMetadata.supplier || '대한(주)'} · ${fileMetadata.manager || '김철수'}` },
+        ].map(c => (
+          <Paper key={c.label} sx={{ flex: 1, p: 1.5, borderRadius: '8px', border: '1px solid #e5e5e7', boxShadow: 'none' }}>
+            <Typography sx={{ fontSize: 10, color: '#86868b', mb: 0.25 }}>{c.label}</Typography>
+            <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{c.value}</Typography>
+          </Paper>
+        ))}
+      </Box>
 
+      {/* 💡 안내 텍스트 (배경/라인 없음) */}
+      <Box sx={{ px: 3, py: 0.75 }}>
+        <Typography sx={{ fontSize: 12, color: '#0071e3', fontWeight: 600 }}>
+          💡 왼쪽 컬럼 클릭 → 오른쪽 Excel 하이라이트 · 더블클릭으로 셀 재매핑
+        </Typography>
       </Box>
 
       {/* 🔄 메인 컨텐츠 (리사이즈 가능한 2분할) */}
@@ -1952,29 +1906,7 @@ const ParsedDataReviewPage: React.FC = () => {
 
 
 
-      {/* 🔙 하단 네비게이션 - 배경 없는 스타일 */}
-      <Box sx={{
-        p: 3,
-        display: 'flex',
-        justifyContent: 'flex-start'
-      }}>
-        <Button
-          variant="outlined"
-          startIcon={<NavigateBefore />}
-          onClick={() => navigate('/parsing')}
-          sx={{
-            textTransform: 'none',
-            borderColor: 'divider',
-            color: 'text.primary',
-            '&:hover': {
-              borderColor: 'primary.main',
-              backgroundColor: 'primary.light'
-            }
-          }}
-        >
-          목록으로
-        </Button>
-      </Box>
+      {/* 목록으로 버튼은 상단 전체저장 옆으로 이동됨 */}
     </Box>
   );
 };

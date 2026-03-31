@@ -114,12 +114,28 @@ const AnalysisPage: React.FC = () => {
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: C.bg }}>
       {/* Header */}
-      <Box sx={{ bgcolor: '#fff', borderBottom: `1px solid ${C.border}`, px: 3, py: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Box sx={{ borderBottom: `1px solid ${C.border}`, px: 3, py: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Typography sx={{ fontSize: 13, color: C.gray }}>분석 &gt;</Typography>
           <Typography sx={{ fontSize: 16, fontWeight: 700 }}>HEAD_LINING_원가계산서</Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button variant="outlined" size="small" startIcon={<NoteAddIcon />} onClick={() => setNoteDialogOpen(true)}
+            sx={{ ...btnOutlineSx, borderColor: C.border, color: C.dark }}>
+            📝 노트작성 ({totalNotesCount})
+          </Button>
+          <Button variant="outlined" size="small" onClick={() => setOriginalViewOpen(true)}
+            sx={{ ...btnOutlineSx, borderColor: C.border, color: C.dark }}>
+            📄 원본보기
+          </Button>
+          <Button variant="outlined" size="small" startIcon={<NavigateBefore />} onClick={() => navigate('/parsing_card')}
+            sx={{ ...btnOutlineSx, borderColor: C.border, color: C.dark }}>
+            목록으로
+          </Button>
+          <Button variant="outlined" size="small" startIcon={<NavigateBefore />} onClick={() => navigate('/verification')}
+            sx={{ ...btnOutlineSx, borderColor: C.border, color: C.dark }}>
+            검증으로
+          </Button>
           <Button variant="contained" size="small" sx={{ ...btnOutlineSx, bgcolor: C.blue, color: '#fff', borderColor: C.blue, '&:hover': { bgcolor: '#0077ED' } }}>
             완료 &amp; 저장
           </Button>
@@ -130,8 +146,32 @@ const AnalysisPage: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Status bar */}
-      <Box sx={{ bgcolor: '#fff', borderBottom: `1px solid ${C.border}`, px: 3, py: 1.5 }}>
+      {/* Info Cards - Verification 스타일 */}
+      <Box sx={{ display: 'flex', gap: 2, px: 3, py: 2, bgcolor: '#f5f5f7' }}>
+        {[
+          { label: 'E.O. NO.', value: 'EO-2024-1201' },
+          { label: '품번 / 품명', value: 'HL-2024-001 · HEAD LINING' },
+          { label: '협력사 / 담당자', value: '대한(주) · 김철수' },
+        ].map(c => (
+          <Paper key={c.label} sx={{ flex: 1, p: 1.5, borderRadius: '8px', border: '1px solid #e5e5e7', boxShadow: 'none' }}>
+            <Typography sx={{ fontSize: 10, color: '#86868b', mb: 0.25 }}>{c.label}</Typography>
+            <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{c.value}</Typography>
+          </Paper>
+        ))}
+        <Paper sx={{ flex: '0 0 140px', p: 1.5, borderRadius: '8px', border: '1px solid #e5e5e7', boxShadow: 'none' }}>
+          <Typography sx={{ fontSize: 10, color: '#86868b', mb: 0.25 }}>생산원가</Typography>
+          <Typography sx={{ fontSize: 16, fontWeight: 700, color: '#0071e3' }}>₩76,800</Typography>
+        </Paper>
+      </Box>
+
+      {/* Tab Bar with Status - 통합 */}
+      <Box sx={{ borderBottom: `1px solid ${C.border}`, px: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}
+          sx={{ minHeight: 40, '& .MuiTab-root': { minHeight: 40, fontSize: 13, fontWeight: 600, textTransform: 'none', px: 2.5 }, '& .Mui-selected': { color: C.blue }, '& .MuiTabs-indicator': { bgcolor: C.blue, height: 2.5 } }}>
+          {['표준', '리스트', '관계도'].map(label => <Tab key={label} label={label} />)}
+        </Tabs>
+        
+        {/* Status 정보들 오른쪽 정렬 */}
         <Box sx={{ display: 'flex', gap: 3 }}>
           {[
             { label: '수정된 항목', value: '1개', color: C.dark },
@@ -148,49 +188,11 @@ const AnalysisPage: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Tab Bar */}
-      <Box sx={{ bgcolor: '#fff', borderBottom: `1px solid ${C.border}`, px: 3 }}>
-        <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}
-          sx={{ minHeight: 40, '& .MuiTab-root': { minHeight: 40, fontSize: 13, fontWeight: 600, textTransform: 'none', px: 2.5 }, '& .Mui-selected': { color: C.blue }, '& .MuiTabs-indicator': { bgcolor: C.blue, height: 2.5 } }}>
-          {['표준', '리스트', '관계도'].map(label => <Tab key={label} label={label} />)}
-        </Tabs>
-      </Box>
-
       {/* Content */}
       <Box sx={{ p: 3 }}>
-        {/* Info Cards */}
-        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-          {[
-            { label: 'E.O. NO.', value: 'EO-2024-1201' },
-            { label: '품번 / 품명', value: 'HL-2024-001 · HEAD LINING' },
-            { label: '협력사 / 담당자', value: '대한(주) · 김철수' },
-          ].map(c => (
-            <Paper key={c.label} sx={{ flex: 1, p: 2, borderRadius: '10px', border: `1px solid ${C.border}`, boxShadow: 'none' }}>
-              <Typography sx={{ fontSize: 11, color: C.gray, mb: 0.5 }}>{c.label}</Typography>
-              <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{c.value}</Typography>
-            </Paper>
-          ))}
-          <Paper sx={{ flex: '0 0 140px', p: 2, borderRadius: '10px', border: `1px solid ${C.border}`, boxShadow: 'none' }}>
-            <Typography sx={{ fontSize: 11, color: C.gray, mb: 0.5 }}>생산원가</Typography>
-            <Typography sx={{ fontSize: 18, fontWeight: 700, color: C.blue }}>₩76,800</Typography>
-          </Paper>
-        </Box>
+        {/* Info Cards는 상단 헤더 아래로 이동됨 */}
 
-        {/* 노트작성 & 원본보기 버튼 (공통) */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mb: 2 }}>
-          <Button 
-            variant="outlined" 
-            size="small" 
-            startIcon={<NoteAddIcon />}
-            onClick={() => setNoteDialogOpen(true)} 
-            sx={{ ...btnOutlineSx, fontSize: 12 }}
-          >
-            📝 노트작성 ({totalNotesCount})
-          </Button>
-          <Button variant="outlined" size="small" onClick={() => setOriginalViewOpen(true)} sx={{ ...btnOutlineSx, fontSize: 12 }}>
-            📄 원본보기
-          </Button>
-        </Box>
+        {/* 노트작성 & 원본보기 버튼은 상단 헤더로 이동됨 */}
 
         {/* ── 표준 뷰 ── */}
         {activeTab === 0 && (
@@ -481,17 +483,7 @@ const AnalysisPage: React.FC = () => {
           </DialogActions>
         </Dialog>
 
-        {/* Navigation */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-start', gap: 1, mt: 3 }}>
-          <Button variant="outlined" startIcon={<NavigateBefore />} onClick={() => navigate('/parsing_card')}
-            sx={{ textTransform: 'none', borderColor: C.border, color: C.dark }}>
-            목록으로
-          </Button>
-          <Button variant="outlined" startIcon={<NavigateBefore />} onClick={() => navigate('/verification')}
-            sx={{ textTransform: 'none', borderColor: C.border, color: C.dark }}>
-            검증으로
-          </Button>
-        </Box>
+        {/* 목록으로/검증으로 버튼은 상단 헤더로 이동됨 */}
       </Box>
 
       {/* Anomaly Reason Popover */}
@@ -572,7 +564,24 @@ const AnalysisPage: React.FC = () => {
                   <Typography sx={{ fontSize: 12, color: C.red }}>{calculationAnchor.row.anomalyReason}</Typography>
                 </Box>
               )}
-              <Typography sx={{ fontSize: 10, color: C.gray, textAlign: 'center', mt: 2, pt: 1, borderTop: `1px solid ${C.border}` }}>클릭하여 닫기</Typography>
+              <Typography 
+                sx={{ 
+                  fontSize: 10, 
+                  color: C.gray, 
+                  textAlign: 'center', 
+                  mt: 2, 
+                  pt: 1, 
+                  borderTop: `1px solid ${C.border}`,
+                  cursor: 'pointer',
+                  '&:hover': {
+                    color: C.blue,
+                    textDecoration: 'underline'
+                  }
+                }}
+                onClick={() => setCalculationAnchor(null)}
+              >
+                클릭하여 닫기
+              </Typography>
             </Box>
           </Paper>
         )}

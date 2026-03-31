@@ -8,17 +8,30 @@ export const useQuotationComparison = () => {
   const [selectedQuotations, setSelectedQuotations] = useState<string[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showComparison, setShowComparison] = useState(false); // 수동 비교 제어
 
   const quotations = selectedProduct ? mockQuotations[selectedProduct] || [] : [];
-  const selectionStep = !selectedProduct ? 0 : selectedQuotations.length < 2 ? 1 : 2;
+  const selectionStep = !selectedProduct ? 0 : !showComparison ? 1 : 2;
 
   const toggleQuotation = (qId: string) => {
-    setSelectedQuotations(prev => prev.includes(qId) ? prev.filter(id => id !== qId) : [...prev, qId]);
+    setSelectedQuotations(prev => {
+      if (prev.includes(qId)) {
+        return prev.filter(id => id !== qId);
+      } else if (prev.length < 4) {
+        return [...prev, qId];
+      }
+      return prev; // 4개 초과시 추가하지 않음
+    });
   };
 
   const resetSelection = () => {
     setSelectedProduct(null);
     setSelectedQuotations([]);
+    setShowComparison(false);
+  };
+
+  const startComparison = () => {
+    setShowComparison(true);
   };
 
   const filteredProducts = mockProducts.filter(p => {
@@ -34,5 +47,6 @@ export const useQuotationComparison = () => {
     searchQuery, setSearchQuery,
     quotations, selectionStep,
     toggleQuotation, resetSelection, filteredProducts,
+    showComparison, startComparison,
   };
 };

@@ -26,21 +26,32 @@
 import React from 'react';
 import { Outlet, Navigate } from 'react-router-dom';
 import { Box, AppBar, Toolbar, Typography, IconButton, Badge, Avatar, Tooltip } from '@mui/material';
-import { Notifications, Help as HelpIcon } from '@mui/icons-material';
+import { Notifications, Help as HelpIcon, Logout, ExpandMore } from '@mui/icons-material';
 import Sidebar from './Sidebar';
 import ThemeSwitcher from '../components/ThemeSwitcher';
 import OnboardingTour, { defaultOnboardingSteps } from '../components/OnboardingTour';
 import SmartGuide from '../components/SmartGuide';
 import UserPreferences from '../components/UserPreferences';
 import { useMainLayout } from './hooks/useMainLayout';
+import { useAuth } from '../../features/auth/AuthContext';
 
 const MainLayout: React.FC = () => {
   // 🎛️ 레이아웃 상태 및 사용자 정보 관리 훅
   const { collapsed, setCollapsed, user, isAuthenticated, sidebarWidth } = useMainLayout();
   
+  // 🔐 인증 관리
+  const { logout } = useAuth();
+  
   // 🎯 사용성 기능 상태
   const [onboardingOpen, setOnboardingOpen] = React.useState(false);
   const [showSmartGuide, setShowSmartGuide] = React.useState(true);
+  const [userMenuOpen, setUserMenuOpen] = React.useState(false);
+
+  const handleLogout = () => {
+    logout();
+    // GitHub Pages 호환을 위해 hash router 방식으로 변경
+    window.location.href = '/HD_MOBIS/#/login';
+  };
 
   // 🎯 첫 방문자 온보딩 체크
   React.useEffect(() => {
@@ -111,11 +122,11 @@ const MainLayout: React.FC = () => {
               </Badge>
             </IconButton>
             
-            {/* 👤 사용자 정보 영역 */}
+            {/* 👤 사용자 정보 영역 - 드롭다운 메뉴 */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 1 }}>
               {/* 사용자 이름 */}
               <Typography variant="body2" color="text.secondary">
-                {user?.name || '사용자'}
+                {user?.name || 'HANY'}
               </Typography>
               
               {/* 사용자 아바타 (이름의 첫 글자 표시) */}
@@ -125,8 +136,25 @@ const MainLayout: React.FC = () => {
                 bgcolor: '#003875',
                 fontSize: 14 
               }}>
-                {user?.name?.[0] || 'U'}
+                {(user?.name || 'HANY')[0]}
               </Avatar>
+
+              {/* 로그아웃 버튼 */}
+              <Tooltip title="로그아웃">
+                <IconButton 
+                  onClick={handleLogout}
+                  sx={{ 
+                    ml: 0.5, 
+                    color: '#666',
+                    '&:hover': { 
+                      bgcolor: 'rgba(255, 87, 87, 0.1)',
+                      color: '#ff5757'
+                    }
+                  }}
+                >
+                  <Logout sx={{ fontSize: 18 }} />
+                </IconButton>
+              </Tooltip>
             </Box>
           </Toolbar>
         </AppBar>

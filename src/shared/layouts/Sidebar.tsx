@@ -134,14 +134,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
         })}
       </List>
 
-      {/* 로그아웃 */}
-      <Box sx={{ p: 2 }}>
-        <ListItemButton onClick={handleLogout}
-          sx={{ mx: 1, borderRadius: 1.5, mb: 0.5, '&:hover': { bgcolor: 'rgba(255,87,87,0.15)' }, px: collapsed ? 1.5 : 2, justifyContent: collapsed ? 'center' : 'flex-start' }}>
-          <ListItemIcon sx={{ color: 'rgba(255,87,87,0.8)', minWidth: collapsed ? 0 : 40 }}><Logout /></ListItemIcon>
-          {!collapsed && <ListItemText primary="로그아웃" primaryTypographyProps={{ fontSize: 14, fontWeight: 400, color: 'rgba(255,87,87,0.8)' }} />}
-        </ListItemButton>
-      </Box>
+      {/* 로그아웃 버튼은 상단 헤더로 이동됨 */}
     </Box>
   );
 };

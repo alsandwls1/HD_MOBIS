@@ -1,47 +1,108 @@
 /**
- * 🎨 공통 색상 상수 (Color Constants)
+ * 🎨 컬러 시스템
  * 
- * 🎯 목적:
- * - 전체 앱에서 일관된 색상 사용을 위한 중앙 집중식 색상 팔레트
- * - Apple 스타일 색상 시스템을 기반으로 현대적이고 접근성 높은 색상 선택
- * - TypeScript의 as const를 사용하여 타입 안전성 보장
- * 
- * 🎭 색상 역할:
- * - blue: 주요 액션, 링크, 선택 상태 (#0071e3)
- * - red: 에러, 경고, 삭제 액션 (#ff3b30)  
- * - green: 성공, 완료, 정상 상태 (#34c759)
- * - orange: 경고, 대기, 진행 중 (#ff9500)
- * - purple: 분석, 고급 기능 (#af52de)
- * - gray: 보조 텍스트, 비활성 상태 (#86868b)
- * - dark: 주 텍스트, 제목 (#1d1d1f)
- * - border: 경계선, 구분선 (#e5e5e7)
- * - bg: 배경색, 카드 배경 (#f5f5f7)
- * 
- * 💡 사용 방법:
- * ```tsx
- * import { C } from '../../shared/constants/colors';
- * 
- * <Box sx={{ color: C.dark, bgcolor: C.bg, border: `1px solid ${C.border}` }}>
- *   <Typography sx={{ color: C.blue }}>링크 텍스트</Typography>
- * </Box>
- * ```
- * 
- * 🔒 타입 안전성:
- * - as const로 리터럴 타입 보장
- * - ColorKey 타입으로 유효한 색상 키만 허용
+ * @description 프로젝트 전반에서 사용되는 색상 상수들을 정의합니다.
+ * @author PM 단무지
+ * @since 2026-03-30
  */
 
-export const C = {
-  blue: '#0071e3',        // 🔵 주요 액션 (버튼, 링크)
-  red: '#ff3b30',         // 🔴 에러, 위험 (오류, 삭제)  
-  green: '#34c759',       // 🟢 성공, 완료 (검증 통과)
-  orange: '#ff9500',      // 🟠 경고, 대기 (처리 중)
-  purple: '#af52de',      // 🟣 분석, 고급 (데이터 분석)
-  gray: '#86868b',        // ⚫ 보조 텍스트 (설명, 라벨)
-  dark: '#1d1d1f',        // ⚫ 주 텍스트 (제목, 내용)
-  border: '#e5e5e7',      // ➖ 경계선 (테두리, 구분선)
-  bg: '#f5f5f7',          // ⬜ 배경색 (카드, 페이지)
+/**
+ * 메인 컬러 팔레트
+ */
+export const COLORS = {
+  /** 기본 색상 */
+  primary: '#0071e3',
+  secondary: '#003875', 
+  
+  /** 상태 색상 */
+  success: '#4caf50',
+  warning: '#ff9800', 
+  error: '#f44336',
+  info: '#2196f3',
+  
+  /** 그레이 스케일 */
+  dark: '#1d1d1f',
+  gray: '#86868b',
+  lightGray: '#e5e5e7',
+  background: '#f5f5f7',
+  
+  /** 카테고리별 색상 */
+  material: {
+    main: '#0071e3',
+    background: '#e8f4fd',
+    light: '#f0f9ff'
+  },
+  process: {
+    main: '#34c759', 
+    background: '#e8fde8',
+    light: '#f0fff4'
+  },
+  overhead: {
+    main: '#ff3b30',
+    background: '#fde8e8', 
+    light: '#fff8f8'
+  }
 } as const;
 
-// 🏷️ 색상 키 타입 정의 (TypeScript 타입 안전성)
-export type ColorKey = keyof typeof C;
+/**
+ * 상태별 색상 매핑
+ */
+export const STATUS_COLORS = {
+  normal: {
+    bg: '#e8f5e8',
+    border: '#4caf50',
+    text: '#2e7d32'
+  },
+  warning: {
+    bg: '#fff8e1', 
+    border: '#ff9800',
+    text: '#ef6c00'
+  },
+  error: {
+    bg: '#ffebee',
+    border: '#f44336', 
+    text: '#c62828'
+  },
+  anomaly: {
+    bg: '#ffebee',
+    border: '#f44336',
+    text: '#c62828'
+  }
+} as const;
+
+/**
+ * 히트맵 색상 생성 함수
+ * @param value 현재 값
+ * @param min 최솟값
+ * @param max 최댓값
+ * @returns 배경색 코드
+ */
+export const getHeatmapColor = (value: number, min: number, max: number): string => {
+  if (min === max) return 'transparent';
+  
+  const ratio = (value - min) / (max - min);
+  
+  if (value === min) return '#e8f5e8'; // 최솟값 (녹색)
+  if (value === max) return '#ffebee'; // 최댓값 (빨간색)
+  
+  // 중간값들은 투명도로 표현
+  const alpha = 0.1 + (ratio * 0.3);
+  return `rgba(255, 152, 0, ${alpha})`; // 주황색 계열
+};
+
+export type StatusColorKey = keyof typeof STATUS_COLORS;
+
+/**
+ * 기존 호환용 단축 컬러 객체
+ */
+export const C = {
+  blue: COLORS.primary,
+  red: COLORS.error,
+  green: COLORS.success,
+  orange: COLORS.warning,
+  purple: '#af52de',
+  gray: COLORS.gray,
+  dark: COLORS.dark,
+  border: COLORS.lightGray,
+  bg: COLORS.background,
+} as const;
