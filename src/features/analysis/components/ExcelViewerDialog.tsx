@@ -88,6 +88,7 @@ interface ExcelViewerDialogProps {
   // 🔧 셀 재매핑 모드
   isRemappingMode?: boolean; // 재매핑 모드 여부
   onCellSelect?: (cell: string, value: string | number) => void; // 셀 선택 콜백
+  embedded?: boolean;
 }
 
 interface ExcelSheet {
@@ -98,6 +99,19 @@ interface ExcelSheet {
 interface ExcelWorkbook {
   sheets: ExcelSheet[];
   fileName: string;
+}
+
+// 셀 컴포넌트
+interface SelectedCellProps {
+  cell: any;
+  rowIndex:number;
+  colIndex:number;
+  cellStyle:any;
+  isHighlighted:boolean;
+  isSelected:boolean;
+  isRemappingMode:boolean;
+  onCellClick: () => void;
+  colSpan: number;
 }
 
 // 🗂️ 실제 Excel 데이터 구조 (견적서 원본)
@@ -277,6 +291,21 @@ const readExcelFromUrl = async (url: string): Promise<ExcelWorkbook> => {
   }
 };
 
+// 셀 컴포넌트
+// const SelectedCell = React.memo(({
+//   cell,
+//   rowIndex,
+//   colIndex,
+//   cellStyle,
+//   isHighlighted,
+//   isSelected,
+//   isRemappingMode,
+//   onCellClick,
+//   colSpan,
+// } : SelectedCellProps) => {
+//   return ();
+// })
+
 const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({ 
   open, 
   onClose, 
@@ -286,7 +315,8 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
   excelFile,
   excelUrl,
   isRemappingMode = false,
-  onCellSelect
+  onCellSelect,
+  embedded = false
 }) => {
   const [zoom, setZoom] = useState(100);
   const [viewMode, setViewMode] = useState<'view' | 'edit'>('view');
@@ -329,7 +359,7 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
 
   // 🗂️ 실제 Excel 파일 로드
   useEffect(() => {
-    if (open) {
+    if (embedded || open) {
       setIsLoading(true);
       setError('');
       setCurrentSheetIndex(0);
@@ -371,7 +401,7 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
       
       loadExcel();
     }
-  }, [open, excelFile, excelUrl, fileName]);
+  }, [embedded, open, excelFile, excelUrl, fileName]);
 
   // 📊 현재 시트 데이터 가져오기
   const currentSheetData = workbook?.sheets[currentSheetIndex]?.data || [];
@@ -475,6 +505,279 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
     }, 500);
   };
 
+  // ━━━ 핵심 콘텐츠 (시트탭 + 시트정보 + 테이블) ━━━
+  const excelContent = isLoading ? (
+    <Box sx={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      height: '100%',
+      flexDirection: 'column',
+      gap: 2
+    }}>
+      <Alert severity="info" icon={<TableChart />}>
+        <Typography variant="body2">
+          <strong>Excel 파일 분석 중...</strong><br/>
+          {fileName} 원본 데이터를 로드하고 있습니다.
+        </Typography>
+      </Alert>
+      <LinearProgress sx={{ width: '50%' }} />
+    </Box>
+  ) : error ? (
+    <Box sx={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      height: '100%',
+      flexDirection: 'column',
+      gap: 2
+    }}>
+      <Alert severity="error" icon={<TableChart />}>
+        <Typography variant="body2">
+          <strong>Excel 파일 로드 실패</strong><br/>
+          {error}
+        </Typography>
+      </Alert>
+    </Box>
+  ) : (
+    <>
+      {/* 📁 시트 탭 */}
+      {workbook && workbook.sheets.length > 1 && (
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
+          <Tabs 
+            value={currentSheetIndex} 
+            onChange={(e, newValue) => setCurrentSheetIndex(newValue)}
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{
+              minHeight: 36,
+              '& .MuiTab-root': {
+                minHeight: 36,
+                textTransform: 'none',
+                fontSize: 12,
+                py: 1
+              }
+            }}
+          >
+            {workbook.sheets.map((sheet, index) => (
+              <Tab 
+                key={index}
+                label={sheet.name}
+                icon={<TableChart sx={{ fontSize: 14 }} />}
+                iconPosition="start"
+              />
+            ))}
+          </Tabs>
+        </Box>
+      )}
+      
+      {/* 📋 현재 시트 정보 */}
+      <Box sx={{ 
+        bgcolor: '#f8f9fa', 
+        p: 1, 
+        borderBottom: '1px solid #e0e0e0',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <Typography variant="body2" color="text.secondary">
+          📊 <strong>시트:</strong> {currentSheetName} | {currentSheetData.length}행 × {currentSheetData[0]?.length || 0}열
+          {highlightedPosition && ` • 매핑: R${highlightedPosition.row + 1}C${highlightedPosition.col + 1}`}
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          확대/축소: {zoom}%
+        </Typography>
+      </Box>
+
+      {/* 🗂️ 풀사이즈 Excel 스타일 테이블 */}
+      <TableContainer 
+        component={Paper} 
+        sx={{ 
+          flex: 1, // 남은 공간 모두 차지
+          overflow: 'auto',
+          border: 'none',
+          boxShadow: 'none',
+          height: '100%',
+          maxWidth: '100%' // 부모 너비를 먼지 않도록
+        }}
+      >
+        <Table 
+          size="small" 
+          stickyHeader
+          sx={{ 
+            width: '100%',
+            transform: `scale(${zoom / 100})`,
+            transformOrigin: 'top left',
+            '& .MuiTableCell-root': {
+              border: '1px solid #ddd',
+              padding: '4px 8px', // 팝업에 맞게 패딩 조정
+              fontSize: 12, // 팝업에 맞게 폰트 크기 조정
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            },
+            '& .MuiTableHead-root .MuiTableCell-root': {
+              position: 'sticky',
+              top: 0,
+              zIndex: 10,
+              backgroundColor: '#f0f0f0'
+            }
+          }}
+        >
+          {/* 📊 Excel 열 헤더 */}
+          <TableHead>
+            <TableRow sx={{ bgcolor: '#f0f0f0' }}>
+              <TableCell 
+                sx={{ 
+                  bgcolor: '#e8e8e8', 
+                  fontWeight: 'bold',
+                  textAlign: 'center',
+                  width: 80, // 풀사이즈에서 더 넓게
+                  minWidth: 80,
+                  position: 'sticky',
+                  left: 0,
+                  zIndex: 11 // 행 헤더가 열 헤더보다 위에
+                }}
+              >
+                #
+              </TableCell>
+              {columnHeaders.map((header, index) => (
+                <TableCell 
+                  key={index}
+                  sx={{ 
+                    bgcolor: '#f0f0f0', 
+                    fontWeight: 'bold',
+                    textAlign: 'center',
+                    minWidth: 150, // 모든 열을 더 넓게
+                    width: header === 'B' ? 200 : 150 // 품명 열은 특히 넓게
+                  }}
+                >
+                  {header}
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+          
+          {/* 📊 Excel 데이터 행들 */}
+          <TableBody>
+            {currentSheetData.map((row, rowIndex) => (
+              <TableRow key={rowIndex}>
+                {/* 행 번호 */}
+                <TableCell 
+                  sx={{ 
+                    bgcolor: '#e8e8e8',
+                    fontWeight: 'bold',
+                    textAlign: 'center',
+                    position: 'sticky',
+                    left: 0,
+                    zIndex: 5,
+                    width: 80,
+                    minWidth: 80,
+                    ...(highlightedPosition?.row === rowIndex && { 
+                      bgcolor: '#fff3cd',
+                      border: '2px solid #ff9500'
+                    })
+                  }}
+                >
+                  {rowIndex + 1}
+                </TableCell>
+                
+                {/* 데이터 셀들 */}
+                {row.map((cell, colIndex) => {
+                  const cellStyle = getCellProperties(rowIndex, colIndex, currentSheetData).style;
+                  const isHighlighted = highlightedPosition?.row === rowIndex && 
+                                        highlightedPosition?.col === colIndex;
+                  const isSelected = selectedCell?.row === rowIndex && selectedCell?.col === colIndex;
+                  
+                  return (
+                    <TableCell 
+                      key={colIndex}
+                      onClick={() => handleCellClick(rowIndex, colIndex, cell)}
+                      sx={{
+                        ...cellStyle,
+                        ...(isRemappingMode && {
+                          cursor: 'pointer',
+                          '&:hover': {
+                            bgcolor: '#e3f2fd !important',
+                            border: '2px solid #2196f3 !important'
+                          }
+                        }),
+                        ...(isHighlighted && {
+                          bgcolor: '#fff3cd !important',
+                          border: '2px solid #ff9500 !important',
+                          position: 'relative',
+                          '&::after': {
+                            content: '"📍"',
+                            position: 'absolute',
+                            top: 2,
+                            right: 2,
+                            fontSize: 10
+                          }
+                        }),
+                        ...(isSelected && {
+                          bgcolor: '#c8e6c9 !important',
+                          border: '3px solid #4caf50 !important',
+                          position: 'relative',
+                          '&::after': {
+                            content: '"✅"',
+                            position: 'absolute',
+                            top: 2,
+                            right: 2,
+                            fontSize: 12
+                          }
+                        }),
+                        ...(rowIndex === 0 && colIndex === 0 && {
+                          // 제목 셀 병합 효과
+                          textAlign: 'center',
+                          fontWeight: 'bold',
+                          fontSize: 14
+                        })
+                      }}
+                      colSpan={rowIndex === 0 && colIndex === 0 ? 7 : 1}
+                    >
+                      {typeof cell === 'number' ? 
+                        cell.toLocaleString() : 
+                        cell || ''
+                      }
+                    </TableCell>
+                  );
+                })}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </>
+  )
+
+  // case1. 검증화면일 경우
+  if(embedded) {
+    return (
+      <Box sx={{
+        height:'100%',
+        width:'100%',
+        position:'relative',
+        overflow:'hidden',
+        display:'flex',
+        flexDirection:'column',
+      }}>
+        <Box sx={{
+          position:"absolute",
+          top:0,
+          left:0,
+          right:0,
+          bottom:0,
+          display:'flex',
+          flexDirection: 'column',
+          overflow: 'hidden'
+        }}>
+          {excelContent}
+        </Box>
+      </Box>
+    )
+  }
+
+  // case2. 팝업화면 일 경우
   return (
     <Dialog 
       open={open} 
@@ -686,248 +989,7 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
         display: 'flex',
         flexDirection: 'column'
       }}>
-        {isLoading ? (
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'center', 
-            height: '100%',
-            flexDirection: 'column',
-            gap: 2
-          }}>
-            <Alert severity="info" icon={<TableChart />}>
-              <Typography variant="body2">
-                <strong>Excel 파일 분석 중...</strong><br/>
-                {fileName} 원본 데이터를 로드하고 있습니다.
-              </Typography>
-            </Alert>
-            <LinearProgress sx={{ width: '50%' }} />
-          </Box>
-        ) : error ? (
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'center', 
-            height: '100%',
-            flexDirection: 'column',
-            gap: 2
-          }}>
-            <Alert severity="error" icon={<TableChart />}>
-              <Typography variant="body2">
-                <strong>Excel 파일 로드 실패</strong><br/>
-                {error}
-              </Typography>
-            </Alert>
-          </Box>
-        ) : (
-          <>
-            {/* 📁 시트 탭 */}
-            {workbook && workbook.sheets.length > 1 && (
-              <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
-                <Tabs 
-                  value={currentSheetIndex} 
-                  onChange={(e, newValue) => setCurrentSheetIndex(newValue)}
-                  variant="scrollable"
-                  scrollButtons="auto"
-                  sx={{
-                    minHeight: 36,
-                    '& .MuiTab-root': {
-                      minHeight: 36,
-                      textTransform: 'none',
-                      fontSize: 12,
-                      py: 1
-                    }
-                  }}
-                >
-                  {workbook.sheets.map((sheet, index) => (
-                    <Tab 
-                      key={index}
-                      label={sheet.name}
-                      icon={<TableChart sx={{ fontSize: 14 }} />}
-                      iconPosition="start"
-                    />
-                  ))}
-                </Tabs>
-              </Box>
-            )}
-            
-            {/* 📋 현재 시트 정보 */}
-            <Box sx={{ 
-              bgcolor: '#f8f9fa', 
-              p: 1, 
-              borderBottom: '1px solid #e0e0e0',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <Typography variant="body2" color="text.secondary">
-                📊 <strong>시트:</strong> {currentSheetName} | {currentSheetData.length}행 × {currentSheetData[0]?.length || 0}열
-                {highlightedPosition && ` • 매핑: R${highlightedPosition.row + 1}C${highlightedPosition.col + 1}`}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                확대/축소: {zoom}%
-              </Typography>
-            </Box>
-
-            {/* 🗂️ 풀사이즈 Excel 스타일 테이블 */}
-            <TableContainer 
-              component={Paper} 
-              sx={{ 
-                flex: 1, // 남은 공간 모두 차지
-                overflow: 'auto',
-                border: 'none',
-                boxShadow: 'none',
-                height: '100%'
-              }}
-            >
-              <Table 
-                size="small" 
-                stickyHeader
-                sx={{ 
-                  width: '100%',
-                  transform: `scale(${zoom / 100})`,
-                  transformOrigin: 'top left',
-                  '& .MuiTableCell-root': {
-                    border: '1px solid #ddd',
-                    padding: '4px 8px', // 팝업에 맞게 패딩 조정
-                    fontSize: 12, // 팝업에 맞게 폰트 크기 조정
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
-                  },
-                  '& .MuiTableHead-root .MuiTableCell-root': {
-                    position: 'sticky',
-                    top: 0,
-                    zIndex: 10,
-                    backgroundColor: '#f0f0f0'
-                  }
-                }}
-              >
-                {/* 📊 Excel 열 헤더 */}
-                <TableHead>
-                  <TableRow sx={{ bgcolor: '#f0f0f0' }}>
-                    <TableCell 
-                      sx={{ 
-                        bgcolor: '#e8e8e8', 
-                        fontWeight: 'bold',
-                        textAlign: 'center',
-                        width: 80, // 풀사이즈에서 더 넓게
-                        minWidth: 80,
-                        position: 'sticky',
-                        left: 0,
-                        zIndex: 11 // 행 헤더가 열 헤더보다 위에
-                      }}
-                    >
-                      #
-                    </TableCell>
-                    {columnHeaders.map((header, index) => (
-                      <TableCell 
-                        key={index}
-                        sx={{ 
-                          bgcolor: '#f0f0f0', 
-                          fontWeight: 'bold',
-                          textAlign: 'center',
-                          minWidth: 150, // 모든 열을 더 넓게
-                          width: header === 'B' ? 200 : 150 // 품명 열은 특히 넓게
-                        }}
-                      >
-                        {header}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                </TableHead>
-                
-                {/* 📊 Excel 데이터 행들 */}
-                <TableBody>
-                  {currentSheetData.map((row, rowIndex) => (
-                    <TableRow key={rowIndex}>
-                      {/* 행 번호 */}
-                      <TableCell 
-                        sx={{ 
-                          bgcolor: '#e8e8e8',
-                          fontWeight: 'bold',
-                          textAlign: 'center',
-                          position: 'sticky',
-                          left: 0,
-                          zIndex: 5,
-                          width: 80,
-                          minWidth: 80,
-                          ...(highlightedPosition?.row === rowIndex && { 
-                            bgcolor: '#fff3cd',
-                            border: '2px solid #ff9500'
-                          })
-                        }}
-                      >
-                        {rowIndex + 1}
-                      </TableCell>
-                      
-                      {/* 데이터 셀들 */}
-                      {row.map((cell, colIndex) => {
-                        const cellStyle = getCellProperties(rowIndex, colIndex, currentSheetData).style;
-                        const isHighlighted = highlightedPosition?.row === rowIndex && 
-                                             highlightedPosition?.col === colIndex;
-                        const isSelected = selectedCell?.row === rowIndex && selectedCell?.col === colIndex;
-                        
-                        return (
-                          <TableCell 
-                            key={colIndex}
-                            onClick={() => handleCellClick(rowIndex, colIndex, cell)}
-                            sx={{
-                              ...cellStyle,
-                              ...(isRemappingMode && {
-                                cursor: 'pointer',
-                                '&:hover': {
-                                  bgcolor: '#e3f2fd !important',
-                                  border: '2px solid #2196f3 !important'
-                                }
-                              }),
-                              ...(isHighlighted && {
-                                bgcolor: '#fff3cd !important',
-                                border: '2px solid #ff9500 !important',
-                                position: 'relative',
-                                '&::after': {
-                                  content: '"📍"',
-                                  position: 'absolute',
-                                  top: 2,
-                                  right: 2,
-                                  fontSize: 10
-                                }
-                              }),
-                              ...(isSelected && {
-                                bgcolor: '#c8e6c9 !important',
-                                border: '3px solid #4caf50 !important',
-                                position: 'relative',
-                                '&::after': {
-                                  content: '"✅"',
-                                  position: 'absolute',
-                                  top: 2,
-                                  right: 2,
-                                  fontSize: 12
-                                }
-                              }),
-                              ...(rowIndex === 0 && colIndex === 0 && {
-                                // 제목 셀 병합 효과
-                                textAlign: 'center',
-                                fontWeight: 'bold',
-                                fontSize: 14
-                              })
-                            }}
-                            colSpan={rowIndex === 0 && colIndex === 0 ? 7 : 1}
-                          >
-                            {typeof cell === 'number' ? 
-                              cell.toLocaleString() : 
-                              cell || ''
-                            }
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </>
-        )}
+        {excelContent}
       </DialogContent>
 
       {/* 📊 하단 상태 표시줄 - 최소화 */}

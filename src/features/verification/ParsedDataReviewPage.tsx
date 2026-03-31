@@ -1532,6 +1532,8 @@ const ParsedDataReviewPage: React.FC = () => {
         {/* 👈 왼쪽: 파싱된 데이터 (Analysis와 동일) */}
         <Box sx={{
           width: `${leftWidth}%`,
+          minWidth: 0,  // flex자식이 넘치지 않게
+          overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
           borderRight: '1px solid rgba(0, 0, 0, 0.1)'
@@ -1569,6 +1571,8 @@ const ParsedDataReviewPage: React.FC = () => {
         {/* 👉 오른쪽: Excel 원본 */}
         <Box sx={{
           width: `${100 - leftWidth}%`,
+          minWidth: 0,
+          overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
           bgcolor: 'grey.50'
@@ -1610,46 +1614,21 @@ const ParsedDataReviewPage: React.FC = () => {
           </Box>
 
           {/* Excel 임베디드 뷰어 */}
-          <Box sx={{ flex: 1, p: 2 }}>
-            <Paper sx={{
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              bgcolor: 'white',
-              border: selectedItem
-                ? '2px solid #0094FF'
-                : '2px dashed rgba(0, 0, 0, 0.1)'
-            }}>
-              <Box sx={{ textAlign: 'center' }}>
-                <ExcelIcon sx={{ fontSize: 64, color: 'grey.400', mb: 2 }} />
-                <Typography variant="h6" color="text.secondary" gutterBottom>
-                  Excel 미리보기
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  {highlightedCell ? (
-                    <>
-                      <strong>{highlightedCell}</strong> 셀이 하이라이트될 예정
-                      <br />
-                      실제 Excel 파일에서 위치를 확인하세요
-                    </>
-                  ) : (
-                    <>
-                      왼쪽에서 컬럼을 클릭하면
-                      <br />
-                      해당 Excel 셀이 하이라이트됩니다
-                    </>
-                  )}
-                </Typography>
-                <Button
-                  variant="contained"
-                  startIcon={<ViewIcon />}
-                  onClick={() => setExcelViewerOpen(true)}
-                >
-                  Excel 뷰어 열기
-                </Button>
-              </Box>
-            </Paper>
+          <Box sx={{ flex: 1, overflow: 'hidden' }}>
+            <ExcelViewerDialog
+              embedded={true}
+              open={true}
+              onClose={()=>{}}
+              fileName={fileName}
+              excelUrl={`${process.env.PUBLIC_URL}/sample_excel/${fileName}`}
+              highlightedCell={highlightedCell}
+              isRemappingMode={isRemappingMode}
+              onCellSelect={(newCell: string, newValue: string | number) => {
+                if(editingCell) {
+                  handleCellRemapping(newCell, newValue);
+                }
+              }}            
+            />
           </Box>
         </Box>
       </Box>
