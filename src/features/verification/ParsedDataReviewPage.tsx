@@ -1,17 +1,17 @@
 /**
  * ✅ 파싱 데이터 검증 페이지 - 견적서 처리 2단계
- * 
+ *
  * 🎯 핵심 기능:
  * 1. 왼쪽: 파싱된 데이터 (analysis 페이지와 동일한 3가지 뷰)
  * 2. 오른쪽: 실제 Excel 원본
  * 3. 클릭 매핑: 왼쪽 데이터 클릭 시 오른쪽 Excel 셀 하이라이트
  * 4. 리사이즈 가능한 분할 화면 (중간 바 드래그)
  * 5. 시각적 검증: 파싱 정확도를 한 눈에 확인
- * 
+ *
  * 📊 2가지 뷰 모드:
  * - 표준뷰: 카테고리별 계층 구조
  * - 리스트뷰: 평면 테이블 형태
- * 
+ *
  * 🔍 검증 특화 기능:
  * - Excel 셀 매핑: 클릭 시 원본 위치 하이라이트
  * - 신뢰도 표시: 파싱 정확도별 색상 코딩
@@ -32,6 +32,9 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  Card,
+  CardContent,
+  Grid,
   TableRow,
   Paper,
   IconButton,
@@ -64,7 +67,7 @@ import {
   AutoAwesome as AIIcon,
   Close as CloseIcon
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import ExcelViewerDialog from '../analysis/components/ExcelViewerDialog';
 
 // ✅ 셀 데이터 타입 (수정 기능 포함)
@@ -125,6 +128,23 @@ interface CostGroup {
 // ✅ 메인 컴포넌트
 const ParsedDataReviewPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // 📄 파일 정보 (URL 파라미터에서 가져옴)
+  const fileId = searchParams.get('fileId') || 'demo_file_001';
+  const fileName = searchParams.get('fileName') || 'sample_data.xlsx';
+
+  // 📄 파일 메타 정보 (실제로는 파싱된 데이터나 API에서 가져와야 함)
+  const [fileMetadata, setFileMetadata] = useState({
+    coNumber: 'CO-2024-001',
+    partNumber: 'HL-2024-001',
+    partName: 'HEAD LINING ASSY',
+    supplier: '대리(주)',
+    manager: '원장수',
+    uploadDate: '2024-03-27',
+    fileSize: '125 KB'
+  });
+
   const [selectedTab, setSelectedTab] = useState(0);
   const [selectedItem, setSelectedItem] = useState<CostItem | null>(null);
   const [highlightedCell, setHighlightedCell] = useState<string>('');
@@ -132,8 +152,7 @@ const ParsedDataReviewPage: React.FC = () => {
   const [leftWidth, setLeftWidth] = useState(50); // 왼쪽 패널 너비 (%)
   const [isResizing, setIsResizing] = useState(false);
   const [costGroups, setCostGroups] = useState<CostGroup[]>([]);
-  const [listData, setListData] = useState<CostItem[]>([]);
-  
+
   // 🔧 편집 모드 상태
   const [editingCell, setEditingCell] = useState<{
     itemId: string;
@@ -141,17 +160,17 @@ const ParsedDataReviewPage: React.FC = () => {
     value: string | number;
   } | null>(null);
   const [editValue, setEditValue] = useState<string>('');
-  
+
   // 🔧 Excel 재매핑 관련 상태
   const [isRemappingMode, setIsRemappingMode] = useState(false);
-  
+
   // 📝 노트작성 관련 상태
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
   const [noteContent, setNoteContent] = useState('');
   const [noteType, setNoteType] = useState('parsing'); // 'parsing' | 'validation' | 'improvement'
   const [savedNotes, setSavedNotes] = useState<any[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  
+
 
 
 
@@ -167,7 +186,7 @@ const ParsedDataReviewPage: React.FC = () => {
   const getFieldWidth = (fieldName: string): string => {
     switch (fieldName) {
       case '구분':
-      case '단위': 
+      case '단위':
         return '60px';
       case '공정':
       case 'CT':
@@ -227,7 +246,7 @@ const ParsedDataReviewPage: React.FC = () => {
     const saved = localStorage.getItem('cost-analysis-expanded-categories');
     return saved ? JSON.parse(saved) : {
       '재료비': true,
-      '가공비': true, 
+      '가공비': true,
       '경비': true
     };
   });
@@ -239,11 +258,11 @@ const ParsedDataReviewPage: React.FC = () => {
         ...prev,
         [category]: !prev[category]
       };
-      
+
       // localStorage에 저장
       localStorage.setItem('cost-analysis-expanded-categories', JSON.stringify(newState));
       console.log(`📁 ${category} ${prev[category] ? '접기' : '펼치기'}`);
-      
+
       return newState;
     });
   };
@@ -261,23 +280,30 @@ const ParsedDataReviewPage: React.FC = () => {
 
     if (isEditing) {
       return (
-        <TableCell 
-          className={className} 
-          sx={{ 
-            position: 'relative', 
+        <TableCell
+          className={className}
+          sx={{
+            position: 'relative',
             minWidth: 'fit-content',
             backgroundColor: 'primary.light',
             border: '2px solid',
             borderColor: 'primary.main',
             boxShadow: 2,
-            py: 0.25,  // 상하 패딩 최소화 
+            py: 0.25,  // 상하 패딩 최소화
             px: 0.5    // 좌우 패딩 최소화
           }}
         >
-          <ClickAwayListener onClickAway={handleEditCancel}>
-            <Box sx={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
+          <ClickAwayListener onClickAway={() => {
+            // 재매핑 모드일 때는 클릭 외부 취소 비활성화
+            if (isRemappingMode) {
+              console.log('🔒 재매핑 모드: ClickAway 무시');
+              return;
+            }
+            handleEditCancel();
+          }}>
+            <Box sx={{
+              display: 'flex',
+              flexDirection: 'column',
               gap: 0.5,  // 1 → 0.5 (간격 50% 감소)
               minWidth: 'max-content',
               p: 0.5     // 1 → 0.5 (패딩 50% 감소)
@@ -313,10 +339,10 @@ const ParsedDataReviewPage: React.FC = () => {
                   }
                 }}
               />
-              
+
               {/* 💡 편집 안내 - 컴팩트 */}
               <Box
-                sx={{ 
+                sx={{
                   fontSize: '10px',     // 10px로 복원
                   color: 'text.disabled',
                   textAlign: 'center',
@@ -339,13 +365,13 @@ const ParsedDataReviewPage: React.FC = () => {
         className={className}
         sx={{
           cursor: 'pointer',
-          backgroundColor: highlightedCell === cellData.cell ? 'primary.light' : 
+          backgroundColor: highlightedCell === cellData.cell ? 'primary.light' :
                           isModified ? 'warning.light' : 'inherit',
           color: isModified ? 'warning.dark' : 'inherit',
           fontWeight: isModified ? 600 : 'inherit',
           position: 'relative',
           userSelect: 'none',
-          '&:hover': { 
+          '&:hover': {
             backgroundColor: 'action.hover',
             '&::before': {
               content: '"더블클릭으로 편집"',
@@ -380,37 +406,37 @@ const ParsedDataReviewPage: React.FC = () => {
         }}
       >
         <span>
-          {isNumeric ? 
-            (typeof cellData.value === 'number' ? cellData.value.toLocaleString() : cellData.value) + 
-            (fieldName === '단가' || fieldName === '금액' || fieldName === '임율' || fieldName === '경비' ? '원' : 
-             fieldName === 'CT' || fieldName === '적용CT' ? '초' : 
+          {isNumeric ?
+            (typeof cellData.value === 'number' ? cellData.value.toLocaleString() : cellData.value) +
+            (fieldName === '단가' || fieldName === '금액' || fieldName === '임율' || fieldName === '경비' ? '원' :
+             fieldName === 'CT' || fieldName === '적용CT' ? '초' :
              fieldName === '인원' ? '명' : '') :
             cellData.value
           }
           {isModified && (
-            <Chip 
-              size="small" 
-              label="수정됨" 
-              color="warning" 
-              sx={{ 
+            <Chip
+              size="small"
+              label="수정됨"
+              color="warning"
+              sx={{
                 ml: 0.5,
-                height: 16, 
+                height: 16,
                 fontSize: '10px',
                 '& .MuiChip-label': { px: 0.5 }
-              }} 
+              }}
             />
           )}
         </span>
         {isModified && (
           <Tooltip title={`원본: ${cellData.originalValue} → 수정: ${cellData.value}`} arrow>
-            <Box sx={{ 
-              position: 'absolute', 
-              top: 2, 
+            <Box sx={{
+              position: 'absolute',
+              top: 2,
               right: 2,
-              width: 6, 
-              height: 6, 
-              borderRadius: '50%', 
-              bgcolor: 'warning.main' 
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              bgcolor: 'warning.main'
             }} />
           </Tooltip>
         )}
@@ -507,8 +533,6 @@ const ParsedDataReviewPage: React.FC = () => {
       }
     ] as CostItem[];
 
-    setListData(demoItems);
-
     // 카테고리별 그룹화
     const groups: CostGroup[] = [
       {
@@ -518,7 +542,7 @@ const ParsedDataReviewPage: React.FC = () => {
         color: '#2196f3'
       },
       {
-        category: '가공비', 
+        category: '가공비',
         items: demoItems.filter(item => item.category === '가공비'),
         total: 0,
         color: '#ff9800'
@@ -546,88 +570,132 @@ const ParsedDataReviewPage: React.FC = () => {
     console.log(`🎯 Excel 셀 ${cell} 하이라이트 - 값: ${value}`);
   };
 
-  // 🔧 셀 더블클릭 편집 핸들러 - Excel 재매핑 모드
+  // 🔧 셀 더블클릭 편집 핸들러 - Excel 재매핑 모드 (디버깅 강화)
   const handleCellDoubleClick = (item: CostItem, fieldName: string, cellData: CellData) => {
     console.log(`🔥 더블클릭 감지! 항목: ${item.id}, 필드: ${fieldName}, 값: ${cellData.value}`);
-    
-    // Excel 재매핑을 위한 편집 상태 설정
-    setEditingCell({
+
+    const newEditingCell = {
       itemId: item.id,
       fieldName,
       value: cellData.value
-    });
+    };
+
+    console.log(`🔧 editingCell 설정 중:`, newEditingCell);
     
+    // Excel 재매핑을 위한 편집 상태 설정
+    setEditingCell(newEditingCell);
+    
+    console.log(`🏗️ 상태 설정 완료 - 다음 단계들:`);
+    console.log(`- setIsRemappingMode(true)`);
+    console.log(`- setExcelViewerOpen(true)`);
+    console.log(`- setHighlightedCell(${cellData.cell})`);
+
     // Excel 뷰어를 재매핑 모드로 열기
     setIsRemappingMode(true);
     setExcelViewerOpen(true);
     setHighlightedCell(cellData.cell); // 현재 매핑된 셀 하이라이트
+
+    console.log(`📊 Excel 재매핑 모드 설정 완료: ${fieldName} (현재: ${cellData.cell})`);
     
-    console.log(`📊 Excel 재매핑 모드: ${fieldName} (현재: ${cellData.cell})`);
+    // 잠시 후 editingCell 상태를 다시 확인
+    setTimeout(() => {
+      console.log(`⏰ 1초 후 editingCell 상태 확인:`, editingCell);
+    }, 1000);
   };
 
   // 💾 Excel 셀 재매핑 완료 핸들러
   const handleCellRemapping = (newCell: string, newValue: string | number) => {
-    if (!editingCell) return;
+    console.log(`🚨 handleCellRemapping 호출됨!`);
+    console.log(`newCell: ${newCell}, newValue: ${newValue}`);
+    console.log(`editingCell:`, editingCell);
+    
+    if (!editingCell) {
+      console.log(`❌ editingCell이 없어서 재매핑 취소`);
+      return;
+    }
 
-    console.log(`🔄 셀 재매핑: ${editingCell.fieldName} - ${highlightedCell} → ${newCell} (${newValue})`);
+    console.log(`🔄 셀 재매핑 시작: ${editingCell.fieldName} - ${highlightedCell} → ${newCell} (${newValue})`);
 
-    // 데이터 업데이트
-    setListData(prev => prev.map(item => {
-      if (item.id === editingCell.itemId) {
-        const updatedItem = { ...item };
-        const field = updatedItem[editingCell.fieldName as keyof CostItem] as CellData;
+    // costGroups만 업데이트 (UI가 사용하는 데이터 소스) - 디버깅 강화
+    console.log(`🔍 찾는 아이템 ID: ${editingCell.itemId}, 필드: ${editingCell.fieldName}`);
+    
+    setCostGroups(prev => {
+      let itemFound = false;
+      let fieldUpdated = false;
+      
+      const result = prev.map(group => {
+        console.log(`그룹 [${group.category}] 체크 중...`);
         
-        if (field && typeof field === 'object' && 'value' in field) {
-          // 셀 위치와 값을 모두 업데이트
-          (field as CellData).cell = newCell;
-          (field as CellData).value = newValue;
-          (field as CellData).isModified = true;
-          (field as CellData).modifiedAt = new Date().toISOString();
-          (field as CellData).modifiedBy = '사용자';
-          
-          console.log(`✅ ${editingCell.fieldName} 재매핑 완료: ${newCell} = ${newValue}`);
-        }
+        const updatedGroup = {
+          ...group,
+          items: group.items.map(item => {
+            console.log(`아이템 체크: ${item.id} === ${editingCell.itemId} ?`);
+            
+            if (item.id === editingCell.itemId) {
+              console.log(`✅ 아이템 발견: ${item.id}`);
+              itemFound = true;
+              
+              const updatedItem = { ...item };
+              const field = updatedItem[editingCell.fieldName as keyof CostItem] as CellData;
+
+              console.log(`필드 체크:`, field);
+              console.log(`필드 타입: ${typeof field}`);
+              console.log(`'value' in field:`, field && typeof field === 'object' && 'value' in field);
+
+              if (field && typeof field === 'object' && 'value' in field) {
+                console.log(`🔄 필드 업데이트 시작: ${editingCell.fieldName}`);
+                (field as CellData).cell = newCell;
+                (field as CellData).value = newValue;
+                (field as CellData).isModified = true;
+                (field as CellData).modifiedAt = new Date().toISOString();
+                (field as CellData).modifiedBy = '사용자';
+                
+                fieldUpdated = true;
+                console.log(`✅ 필드 업데이트 완료: ${editingCell.fieldName} = ${newValue}`);
+              } else {
+                console.log(`❌ 필드 업데이트 실패: 잘못된 필드 구조`);
+              }
+
+              return updatedItem;
+            }
+            return item;
+          })
+        };
         
-        return updatedItem;
+        // 금액 변경시 총합 재계산
+        updatedGroup.total = updatedGroup.items.reduce((sum, item) => {
+          const amount = item.id === editingCell.itemId && editingCell.fieldName === '금액'
+            ? Number(newValue)
+            : Number(item.금액.value);
+          return sum + amount;
+        }, 0);
+        
+        return updatedGroup;
+      });
+      
+      // 디버깅 결과 출력
+      console.log(`📊 재매핑 결과 요약:`);
+      console.log(`- 아이템 발견: ${itemFound}`);
+      console.log(`- 필드 업데이트: ${fieldUpdated}`);
+      
+      if (!itemFound) {
+        console.log(`❌ 심각한 문제: 아이템 ID ${editingCell.itemId}를 찾을 수 없음!`);
       }
-      return item;
-    }));
-
-    // 그룹 데이터도 업데이트
-    setCostGroups(prev => prev.map(group => ({
-      ...group,
-      items: group.items.map(item => {
-        if (item.id === editingCell.itemId) {
-          const updatedItem = { ...item };
-          const field = updatedItem[editingCell.fieldName as keyof CostItem] as CellData;
-          
-          if (field && typeof field === 'object' && 'value' in field) {
-            (field as CellData).cell = newCell;
-            (field as CellData).value = newValue;
-            (field as CellData).isModified = true;
-            (field as CellData).modifiedAt = new Date().toISOString();
-            (field as CellData).modifiedBy = '사용자';
-          }
-          
-          return updatedItem;
-        }
-        return item;
-      }),
-      // 금액 변경시 총합 재계산
-      total: group.items.reduce((sum, item) => {
-        const amount = item.id === editingCell.itemId && editingCell.fieldName === '금액'
-          ? Number(newValue) 
-          : Number(item.금액.value);
-        return sum + amount;
-      }, 0)
-    })));
+      
+      if (!fieldUpdated) {
+        console.log(`❌ 심각한 문제: 필드 업데이트 실패!`);
+      }
+      
+      return result;
+    });
 
     // 편집 상태 초기화
     setEditingCell(null);
     setIsRemappingMode(false);
+    setExcelViewerOpen(false); // Excel 뷰어 닫기
     setHighlightedCell(newCell); // 새로 매핑된 셀 하이라이트
-    
-    console.log(`🎯 재매핑 성공! 새로운 셀: ${newCell}`);
+
+    console.log(`🎯 재매핑 완료! 새로운 셀: ${newCell}, 값: ${newValue}`);
   };
 
   // 📝 노트작성 관련 핸들러
@@ -636,11 +704,13 @@ const ParsedDataReviewPage: React.FC = () => {
 
     const newNote = {
       id: Date.now().toString(),
+      fileId: currentFileId, // 파일 ID 추가 (파싱 노트와 연결)
+      fileName: fileName, // 파일명 추가 (URL에서 가져옴)
       type: noteType,
       content: noteContent,
       timestamp: new Date().toISOString(),
       analysisData: {
-        totalItems: listData.length,
+        totalItems: costGroups.reduce((sum, group) => sum + group.items.length, 0),
         modifiedItems: getModifiedItemsCount(),
         categories: costGroups.map(g => ({
           name: g.category,
@@ -653,24 +723,24 @@ const ParsedDataReviewPage: React.FC = () => {
     };
 
     setSavedNotes(prev => [...prev, newNote]);
-    
-    // localStorage에 저장
-    const existingNotes = JSON.parse(localStorage.getItem('cost-analysis-notes') || '[]');
-    existingNotes.push(newNote);
-    localStorage.setItem('cost-analysis-notes', JSON.stringify(existingNotes));
-    
-    console.log('📝 노트 저장 완료:', newNote);
+
+    // 파싱 노트 저장소에 저장 (통합)
+    const existingParsingNotes = JSON.parse(localStorage.getItem('parsing-notes') || '[]');
+    existingParsingNotes.push(newNote);
+    localStorage.setItem('parsing-notes', JSON.stringify(existingParsingNotes));
+
+    console.log('📝 검증 노트 저장 완료 (파싱 저장소):', newNote);
     setNoteContent('');
     setNoteDialogOpen(false);
   };
 
   const handleAIAnalysis = async () => {
     setIsAnalyzing(true);
-    
+
     // 현재 분석 데이터 요약
     const analysisContext = {
       파일명: 'sample_quotation.xlsx',
-      총항목수: listData.length,
+      총항목수: costGroups.reduce((sum, group) => sum + group.items.length, 0),
       수정된항목: getModifiedItemsCount(),
       카테고리별현황: costGroups.map(g => ({
         카테고리: g.category,
@@ -678,11 +748,13 @@ const ParsedDataReviewPage: React.FC = () => {
         항목수: g.items.length
       })),
       현재선택셀: highlightedCell,
-      문제점: listData.filter(item => 
-        Object.values(item).some(field => 
-          field && typeof field === 'object' && 'isModified' in field && field.isModified
-        )
-      ).length
+      문제점: costGroups.reduce((problemCount, group) => {
+        return problemCount + group.items.filter(item =>
+          Object.values(item).some(field =>
+            field && typeof field === 'object' && 'isModified' in field && field.isModified
+          )
+        ).length;
+      }, 0)
     };
 
     // LLM 분석 시뮬레이션
@@ -703,7 +775,7 @@ const ParsedDataReviewPage: React.FC = () => {
 
 📋 **향후 파싱시 주의사항:**
 - 재료비 구분(소재/부품/체결재) 자동 분류 정확도 향상
-- 가공비 공정 코드(P01~P03) 패턴 인식 강화  
+- 가공비 공정 코드(P01~P03) 패턴 인식 강화
 - 경비 계산 공식 검증 로직 추가
 - Excel 템플릿 변경시 대응 방안 수립
 
@@ -712,47 +784,79 @@ const ParsedDataReviewPage: React.FC = () => {
 - [ ] 단가×수량=금액 일치성 확인
 - [ ] 셀 참조 오류 없는지 점검
       `;
-      
+
       setNoteContent(aiSuggestion);
       setIsAnalyzing(false);
     }, 2000);
   };
 
-  // 초기 노트 로드
+  // 📄 현재 작업 중인 파일 ID (URL 파라미터에서 가져옴)
+  const currentFileId = fileId;
+
+  // 초기 노트 로드 (파싱 노트와 통합)
   useEffect(() => {
     try {
-      const savedNotesData = JSON.parse(localStorage.getItem('cost-analysis-notes') || '[]');
-      // 유효한 노트만 로드 (빈 배열이면 빈 상태 유지)
-      const validNotes = Array.isArray(savedNotesData) ? savedNotesData.filter(note => 
-        note && note.id && note.content && note.content.trim().length > 0
-      ) : [];
-      setSavedNotes(validNotes);
-      console.log('📝 노트 로드:', validNotes.length, '개');
-      console.log('🔍 히스토리 섹션 조건 체크:', {
-        hasSavedNotes: savedNotes && savedNotes.length > 0,
-        hasValidContent: savedNotes.some(note => note && note.content && note.content.trim())
+      // parsing-notes에서 현재 파일의 노트만 로드
+      const parsingNotesData = JSON.parse(localStorage.getItem('parsing-notes') || '[]');
+      // 기존 검증 노트도 마이그레이션
+      const legacyNotesData = JSON.parse(localStorage.getItem('cost-analysis-notes') || '[]');
+
+      // 현재 파일의 노트만 필터링
+      const currentFileNotes = parsingNotesData.filter((note: any) =>
+        note && note.fileId === currentFileId && note.content && note.content.trim().length > 0
+      );
+
+      // 기존 검증 노트를 파일 기반으로 마이그레이션
+      const migratedLegacyNotes = legacyNotesData.map((note: any) => ({
+        ...note,
+        fileId: currentFileId, // 기존 노트를 현재 파일로 연결
+        fileName: fileName // 현재 파일명
+      }));
+
+      // 마이그레이션된 노트를 파싱 노트에 추가 (중복 방지)
+      if (migratedLegacyNotes.length > 0) {
+        const allParsingNotes = [...parsingNotesData, ...migratedLegacyNotes];
+        localStorage.setItem('parsing-notes', JSON.stringify(allParsingNotes));
+        // 기존 검증 노트 삭제
+        localStorage.removeItem('cost-analysis-notes');
+        console.log('📝 검증 노트 → 파싱 노트 마이그레이션 완료:', migratedLegacyNotes.length, '개');
+      }
+
+      // 현재 파일의 모든 노트 (마이그레이션 포함)
+      const allCurrentFileNotes = [...currentFileNotes, ...migratedLegacyNotes];
+      setSavedNotes(allCurrentFileNotes);
+
+      console.log('📝 파일별 노트 로드 완료:', {
+        파일ID: currentFileId,
+        노트수: allCurrentFileNotes.length,
+        파싱노트: currentFileNotes.length,
+        마이그레이션: migratedLegacyNotes.length
       });
     } catch (error) {
       console.error('노트 로드 실패:', error);
       setSavedNotes([]);
     }
-  }, []);
+  }, [currentFileId]);
 
   // 📊 수정된 항목 개수 계산
   const getModifiedItemsCount = (): number => {
-    return listData.reduce((count, item) => {
-      const modifiedFields = Object.keys(item).filter(key => {
-        const field = item[key as keyof CostItem];
-        return field && typeof field === 'object' && 'isModified' in field && field.isModified;
-      });
-      return count + modifiedFields.length;
+    return costGroups.reduce((groupCount, group) => {
+      return groupCount + group.items.reduce((itemCount, item) => {
+        const modifiedFields = Object.keys(item).filter(key => {
+          const field = item[key as keyof CostItem];
+          return field && typeof field === 'object' && 'isModified' in field && field.isModified;
+        });
+        return itemCount + modifiedFields.length;
+      }, 0);
     }, 0);
   };
+
+
 
   // 💾 전체 변경사항 저장
   const handleSaveAllChanges = () => {
     const modifiedCount = getModifiedItemsCount();
-    
+
     if (modifiedCount === 0) {
       console.log('⚠️ 저장할 변경사항이 없습니다.');
       return;
@@ -760,10 +864,10 @@ const ParsedDataReviewPage: React.FC = () => {
 
     // 여기서 실제 백엔드 API 호출 또는 로컬 저장 처리
     console.log(`💾 전체 저장 시작: ${modifiedCount}개 항목`);
-    
+
     // 성공 피드백 (임시)
     alert(`✅ ${modifiedCount}개 항목이 성공적으로 저장되었습니다!`);
-    
+
     console.log(`✅ 전체 저장 완료: ${modifiedCount}개 항목`);
   };
 
@@ -771,43 +875,25 @@ const ParsedDataReviewPage: React.FC = () => {
   const handleEditSave = () => {
     if (!editingCell) return;
 
-    const newValue = typeof editingCell.value === 'number' 
-      ? parseFloat(editValue) || 0 
+    const newValue = typeof editingCell.value === 'number'
+      ? parseFloat(editValue) || 0
       : editValue;
 
-    // 데이터 업데이트
-    setListData(prev => prev.map(item => {
-      if (item.id === editingCell.itemId) {
-        const updatedItem = { ...item };
-        const field = updatedItem[editingCell.fieldName as keyof CostItem] as CellData;
-        
-        if (field && typeof field === 'object' && 'value' in field) {
-          (field as CellData).value = newValue;
-          (field as CellData).isModified = true;
-          (field as CellData).modifiedAt = new Date().toISOString();
-          (field as CellData).modifiedBy = '사용자'; // 실제로는 현재 사용자 정보
-        }
-        
-        return updatedItem;
-      }
-      return item;
-    }));
-
-    // 그룹 데이터도 업데이트
+    // costGroups만 업데이트 (UI가 사용하는 유일한 데이터 소스)
     setCostGroups(prev => prev.map(group => ({
       ...group,
       items: group.items.map(item => {
         if (item.id === editingCell.itemId) {
           const updatedItem = { ...item };
           const field = updatedItem[editingCell.fieldName as keyof CostItem] as CellData;
-          
+
           if (field && typeof field === 'object' && 'value' in field) {
             (field as CellData).value = newValue;
             (field as CellData).isModified = true;
             (field as CellData).modifiedAt = new Date().toISOString();
             (field as CellData).modifiedBy = '사용자';
           }
-          
+
           return updatedItem;
         }
         return item;
@@ -815,7 +901,7 @@ const ParsedDataReviewPage: React.FC = () => {
       // 금액 변경시 총합 재계산
       total: group.items.reduce((sum, item) => {
         const amount = item.id === editingCell.itemId && editingCell.fieldName === '금액'
-          ? Number(newValue) 
+          ? Number(newValue)
           : Number(item.금액.value);
         return sum + amount;
       }, 0)
@@ -823,13 +909,13 @@ const ParsedDataReviewPage: React.FC = () => {
 
     setEditingCell(null);
     setEditValue('');
-    
+
     // 저장 완료 피드백 (임시 하이라이트)
     const targetCell = editingCell.fieldName;
     setTimeout(() => {
       setHighlightedCell('');
     }, 1000);
-    
+
     console.log(`✅ ${editingCell.fieldName} 편집 완료: ${newValue} (임시 저장)`);
   };
 
@@ -848,10 +934,10 @@ const ParsedDataReviewPage: React.FC = () => {
 
   const handleMouseMove = (e: MouseEvent) => {
     if (!isResizing || !containerRef.current) return;
-    
+
     const containerRect = containerRef.current.getBoundingClientRect();
     const newLeftWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
-    
+
     // 20%~80% 범위로 제한
     if (newLeftWidth >= 20 && newLeftWidth <= 80) {
       setLeftWidth(newLeftWidth);
@@ -883,65 +969,20 @@ const ParsedDataReviewPage: React.FC = () => {
         <Typography variant="h6" fontWeight={600} sx={{ color: 'text.primary' }}>
           📊 카테고리별 원가 분석
         </Typography>
-        
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          {/* 📝 노트작성 버튼 (개수 표시) */}
-          <Button
-            variant="outlined"
-            color="primary"
-            size="medium"
-            startIcon={<NoteAddIcon />}
-            onClick={() => setNoteDialogOpen(true)}
-            sx={{
-              fontWeight: 600,
-              px: 2.5,
-              py: 0.75,
-              borderColor: 'primary.main',
-              '&:hover': {
-                boxShadow: 2,
-                transform: 'translateY(-1px)'
-              },
-              transition: 'all 0.2s ease'
-            }}
-          >
-            노트작성 ({savedNotes.filter(n => n && n.content && n.content.trim()).length})
-          </Button>
-          
-          {/* 💾 전체 저장 버튼 (표준뷰용) */}
-          <Button
-            variant="contained"
-            color="success"
-            size="medium"
-            startIcon={<SaveIcon />}
-            onClick={handleSaveAllChanges}
-            disabled={getModifiedItemsCount() === 0}
-            sx={{
-              fontWeight: 600,
-              px: 2.5,
-              py: 0.75,
-              boxShadow: 2,
-              '&:hover': {
-                boxShadow: 4,
-                transform: 'translateY(-1px)'
-              },
-              transition: 'all 0.2s ease'
-            }}
-          >
-            전체 저장 ({getModifiedItemsCount()}개)
-          </Button>
-        </Box>
+
+
       </Box>
-      
+
       {costGroups.map((group) => (
         <Paper key={group.category} sx={{ mb: 2, overflow: 'hidden' }}>
           {/* 📁 아코디언 헤더 (클릭 가능) */}
-          <Box 
-            sx={{ 
-              bgcolor: group.color, 
-              color: 'white', 
+          <Box
+            sx={{
+              bgcolor: group.color,
+              color: 'white',
               p: 1.5,  // 패딩 줄임 (2 → 1.5)
-              display: 'flex', 
-              justifyContent: 'space-between', 
+              display: 'flex',
+              justifyContent: 'space-between',
               alignItems: 'center',
               cursor: 'pointer',
               '&:hover': {
@@ -954,8 +995,8 @@ const ParsedDataReviewPage: React.FC = () => {
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               {/* 📁 펼치기/접기 아이콘 */}
-              {expandedCategories[group.category] ? 
-                <ExpandLessIcon sx={{ fontSize: '20px' }} /> : 
+              {expandedCategories[group.category] ?
+                <ExpandLessIcon sx={{ fontSize: '20px' }} /> :
                 <ExpandMoreIcon sx={{ fontSize: '20px' }} />
               }
               <Typography variant="h6" fontWeight={600} sx={{ fontSize: '18px' }}>  {/* 폰트 크기 줄임 */}
@@ -966,7 +1007,7 @@ const ParsedDataReviewPage: React.FC = () => {
               {group.total.toLocaleString()}원
             </Typography>
           </Box>
-          
+
           {/* 🔽 아코디언 컨텐츠 */}
           <Collapse in={expandedCategories[group.category]}>
             <Box sx={{ p: 0 }}>
@@ -989,43 +1030,43 @@ const ParsedDataReviewPage: React.FC = () => {
                       const materialItem = item as MaterialCostItem;
                       return (
                         <TableRow key={item.id} hover>
-                          <EditableCell 
-                            cellData={materialItem.구분} 
-                            item={item} 
-                            fieldName="구분" 
+                          <EditableCell
+                            cellData={materialItem.구분}
+                            item={item}
+                            fieldName="구분"
                           />
-                          <EditableCell 
-                            cellData={materialItem.품명} 
-                            item={item} 
-                            fieldName="품명" 
+                          <EditableCell
+                            cellData={materialItem.품명}
+                            item={item}
+                            fieldName="품명"
                             className="font-medium"
                           />
-                          <EditableCell 
-                            cellData={materialItem.규격} 
-                            item={item} 
-                            fieldName="규격" 
+                          <EditableCell
+                            cellData={materialItem.규격}
+                            item={item}
+                            fieldName="규격"
                           />
-                          <EditableCell 
-                            cellData={materialItem.단위} 
-                            item={item} 
-                            fieldName="단위" 
+                          <EditableCell
+                            cellData={materialItem.단위}
+                            item={item}
+                            fieldName="단위"
                           />
-                          <EditableCell 
-                            cellData={materialItem.수량} 
-                            item={item} 
-                            fieldName="수량" 
+                          <EditableCell
+                            cellData={materialItem.수량}
+                            item={item}
+                            fieldName="수량"
                             isNumeric
                           />
-                          <EditableCell 
-                            cellData={materialItem.단가} 
-                            item={item} 
-                            fieldName="단가" 
+                          <EditableCell
+                            cellData={materialItem.단가}
+                            item={item}
+                            fieldName="단가"
                             isNumeric
                           />
-                          <EditableCell 
-                            cellData={materialItem.금액} 
-                            item={item} 
-                            fieldName="금액" 
+                          <EditableCell
+                            cellData={materialItem.금액}
+                            item={item}
+                            fieldName="금액"
                             isNumeric
                             className="font-semibold"
                           />
@@ -1055,39 +1096,39 @@ const ParsedDataReviewPage: React.FC = () => {
                       const processItem = item as ProcessCostItem;
                       return (
                         <TableRow key={item.id} hover>
-                          <EditableCell 
-                            cellData={processItem.공정} 
-                            item={item} 
-                            fieldName="공정" 
+                          <EditableCell
+                            cellData={processItem.공정}
+                            item={item}
+                            fieldName="공정"
                           />
-                          <EditableCell 
-                            cellData={processItem.공정명} 
-                            item={item} 
-                            fieldName="공정명" 
+                          <EditableCell
+                            cellData={processItem.공정명}
+                            item={item}
+                            fieldName="공정명"
                             className="font-medium"
                           />
-                          <EditableCell 
-                            cellData={processItem.인원} 
-                            item={item} 
-                            fieldName="인원" 
+                          <EditableCell
+                            cellData={processItem.인원}
+                            item={item}
+                            fieldName="인원"
                             isNumeric
                           />
-                          <EditableCell 
-                            cellData={processItem.적용CT} 
-                            item={item} 
-                            fieldName="적용CT" 
+                          <EditableCell
+                            cellData={processItem.적용CT}
+                            item={item}
+                            fieldName="적용CT"
                             isNumeric
                           />
-                          <EditableCell 
-                            cellData={processItem.임율} 
-                            item={item} 
-                            fieldName="임율" 
+                          <EditableCell
+                            cellData={processItem.임율}
+                            item={item}
+                            fieldName="임율"
                             isNumeric
                           />
-                          <EditableCell 
-                            cellData={processItem.금액} 
-                            item={item} 
-                            fieldName="금액" 
+                          <EditableCell
+                            cellData={processItem.금액}
+                            item={item}
+                            fieldName="금액"
                             isNumeric
                             className="font-semibold"
                           />
@@ -1115,28 +1156,28 @@ const ParsedDataReviewPage: React.FC = () => {
                       const overheadItem = item as OverheadCostItem;
                       return (
                         <TableRow key={item.id} hover>
-                          <EditableCell 
-                            cellData={overheadItem.기종} 
-                            item={item} 
-                            fieldName="기종" 
+                          <EditableCell
+                            cellData={overheadItem.기종}
+                            item={item}
+                            fieldName="기종"
                             className="font-medium"
                           />
-                          <EditableCell 
-                            cellData={overheadItem.CT} 
-                            item={item} 
-                            fieldName="CT" 
+                          <EditableCell
+                            cellData={overheadItem.CT}
+                            item={item}
+                            fieldName="CT"
                             isNumeric
                           />
-                          <EditableCell 
-                            cellData={overheadItem.경비} 
-                            item={item} 
-                            fieldName="경비" 
+                          <EditableCell
+                            cellData={overheadItem.경비}
+                            item={item}
+                            fieldName="경비"
                             isNumeric
                           />
-                          <EditableCell 
-                            cellData={overheadItem.금액} 
-                            item={item} 
-                            fieldName="금액" 
+                          <EditableCell
+                            cellData={overheadItem.금액}
+                            item={item}
+                            fieldName="금액"
                             isNumeric
                             className="font-semibold"
                           />
@@ -1157,35 +1198,12 @@ const ParsedDataReviewPage: React.FC = () => {
   // ✅ 리스트뷰 렌더링 (통합 테이블 - 편집 가능)
   const ListView = () => (
     <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+      <Box sx={{ mb: 3 }}>
         <Typography variant="h6" fontWeight={600}>
           📋 전체 항목 리스트
         </Typography>
-        
-        {/* 💾 전체 저장 버튼 (리스트뷰용) */}
-        <Button
-          variant="contained"
-          color="success"
-          size="medium"
-          startIcon={<SaveIcon />}
-          onClick={handleSaveAllChanges}
-          disabled={getModifiedItemsCount() === 0}
-          sx={{
-            fontWeight: 600,
-            px: 2.5,
-            py: 0.75,
-            boxShadow: 2,
-            '&:hover': {
-              boxShadow: 4,
-              transform: 'translateY(-1px)'
-            },
-            transition: 'all 0.2s ease'
-          }}
-        >
-          전체 저장 ({getModifiedItemsCount()}개)
-        </Button>
       </Box>
-      
+
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
@@ -1200,7 +1218,7 @@ const ParsedDataReviewPage: React.FC = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {listData.map((item) => {
+            {costGroups.flatMap(group => group.items).map((item) => {
               let 구분값 = '';
               let 품명값 = '';
               let 규격값 = '';
@@ -1233,9 +1251,9 @@ const ParsedDataReviewPage: React.FC = () => {
               return (
                 <TableRow key={item.id} hover>
                   <TableCell>
-                    <Chip 
-                      size="small" 
-                      label={item.category} 
+                    <Chip
+                      size="small"
+                      label={item.category}
                       color={
                         item.category === '재료비' ? 'primary' :
                         item.category === '가공비' ? 'secondary' : 'success'
@@ -1243,46 +1261,46 @@ const ParsedDataReviewPage: React.FC = () => {
                       variant="outlined"
                     />
                   </TableCell>
-                  
+
                   {/* 구분/공정/기종 - 편집 가능 */}
                   {item.category === '재료비' && (
-                    <EditableCell 
-                      cellData={(item as MaterialCostItem).구분} 
-                      item={item} 
-                      fieldName="구분" 
+                    <EditableCell
+                      cellData={(item as MaterialCostItem).구분}
+                      item={item}
+                      fieldName="구분"
                       className="font-medium"
                     />
                   )}
                   {item.category === '가공비' && (
-                    <EditableCell 
-                      cellData={(item as ProcessCostItem).공정} 
-                      item={item} 
-                      fieldName="공정" 
+                    <EditableCell
+                      cellData={(item as ProcessCostItem).공정}
+                      item={item}
+                      fieldName="공정"
                     />
                   )}
                   {item.category === '경비' && (
-                    <EditableCell 
-                      cellData={(item as OverheadCostItem).기종} 
-                      item={item} 
-                      fieldName="기종" 
+                    <EditableCell
+                      cellData={(item as OverheadCostItem).기종}
+                      item={item}
+                      fieldName="기종"
                       className="font-medium"
                     />
                   )}
 
                   {/* 품명/공정명 - 편집 가능 */}
                   {item.category === '재료비' && (
-                    <EditableCell 
-                      cellData={(item as MaterialCostItem).품명} 
-                      item={item} 
-                      fieldName="품명" 
+                    <EditableCell
+                      cellData={(item as MaterialCostItem).품명}
+                      item={item}
+                      fieldName="품명"
                       className="font-medium"
                     />
                   )}
                   {item.category === '가공비' && (
-                    <EditableCell 
-                      cellData={(item as ProcessCostItem).공정명} 
-                      item={item} 
-                      fieldName="공정명" 
+                    <EditableCell
+                      cellData={(item as ProcessCostItem).공정명}
+                      item={item}
+                      fieldName="공정명"
                       className="font-medium"
                     />
                   )}
@@ -1292,69 +1310,69 @@ const ParsedDataReviewPage: React.FC = () => {
 
                   {/* 규격/인원/CT - 편집 가능 */}
                   {item.category === '재료비' && (
-                    <EditableCell 
-                      cellData={(item as MaterialCostItem).규격} 
-                      item={item} 
-                      fieldName="규격" 
+                    <EditableCell
+                      cellData={(item as MaterialCostItem).규격}
+                      item={item}
+                      fieldName="규격"
                     />
                   )}
                   {item.category === '가공비' && (
-                    <EditableCell 
-                      cellData={(item as ProcessCostItem).인원} 
-                      item={item} 
-                      fieldName="인원" 
+                    <EditableCell
+                      cellData={(item as ProcessCostItem).인원}
+                      item={item}
+                      fieldName="인원"
                       isNumeric
                     />
                   )}
                   {item.category === '경비' && (
-                    <EditableCell 
-                      cellData={(item as OverheadCostItem).CT} 
-                      item={item} 
-                      fieldName="CT" 
+                    <EditableCell
+                      cellData={(item as OverheadCostItem).CT}
+                      item={item}
+                      fieldName="CT"
                       isNumeric
                     />
                   )}
 
                   {/* 수량/임율/경비 - 편집 가능 */}
                   {item.category === '재료비' && (
-                    <EditableCell 
-                      cellData={(item as MaterialCostItem).수량} 
-                      item={item} 
-                      fieldName="수량" 
+                    <EditableCell
+                      cellData={(item as MaterialCostItem).수량}
+                      item={item}
+                      fieldName="수량"
                       isNumeric
                     />
                   )}
                   {item.category === '가공비' && (
-                    <EditableCell 
-                      cellData={(item as ProcessCostItem).임율} 
-                      item={item} 
-                      fieldName="임율" 
+                    <EditableCell
+                      cellData={(item as ProcessCostItem).임율}
+                      item={item}
+                      fieldName="임율"
                       isNumeric
                     />
                   )}
                   {item.category === '경비' && (
-                    <EditableCell 
-                      cellData={(item as OverheadCostItem).경비} 
-                      item={item} 
-                      fieldName="경비" 
+                    <EditableCell
+                      cellData={(item as OverheadCostItem).경비}
+                      item={item}
+                      fieldName="경비"
                       isNumeric
                     />
                   )}
 
                   {/* 단가/적용CT - 편집 가능 */}
                   {item.category === '재료비' && (
-                    <EditableCell 
-                      cellData={(item as MaterialCostItem).단가} 
-                      item={item} 
-                      fieldName="단가" 
+                    <EditableCell
+                      cellData={(item as MaterialCostItem).단가}
+                      item={item}
+                      fieldName="단가"
                       isNumeric
                     />
                   )}
                   {item.category === '가공비' && (
-                    <EditableCell 
-                      cellData={(item as ProcessCostItem).적용CT} 
-                      item={item} 
-                      fieldName="적용CT" 
+                    <EditableCell
+                      cellData={(item as ProcessCostItem).적용CT}
+                      item={item}
+                      fieldName="적용CT"
                       isNumeric
                     />
                   )}
@@ -1363,10 +1381,10 @@ const ParsedDataReviewPage: React.FC = () => {
                   )}
 
                   {/* 금액 - 편집 가능 */}
-                  <EditableCell 
-                    cellData={item.금액} 
-                    item={item} 
-                    fieldName="금액" 
+                  <EditableCell
+                    cellData={item.금액}
+                    item={item}
+                    fieldName="금액"
                     isNumeric
                     className="font-semibold"
                   />
@@ -1392,65 +1410,136 @@ const ParsedDataReviewPage: React.FC = () => {
 
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* 🎯 상단 헤더 */}
+      {/* 🎯 상단 헤더 - 분리된 레이아웃 */}
       <Box sx={{ p: 3, borderBottom: '1px solid rgba(0, 0, 0, 0.1)' }}>
-        <Typography variant="h4" fontWeight={700} sx={{ mb: 0.5 }}>
-          🔍 파싱 데이터 검증
-        </Typography>
-        
-        <Typography variant="body1" color="text.secondary">
-          왼쪽에서 각 컬럼을 클릭하면 오른쪽 Excel 원본의 해당 셀이 하이라이트됩니다. 
-          더블클릭하면 Excel에서 올바른 셀을 재선택할 수 있습니다.
-        </Typography>
-        
-        {/* 📝 수정 안내 및 상태 */}
-        <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Alert severity="info" sx={{ flexGrow: 1 }}>
-            <Typography variant="body2">
-              💡 <strong>더블클릭으로 셀 재매핑:</strong> 잘못 매핑된 셀을 더블클릭하면 Excel 원본에서 올바른 셀을 선택할 수 있습니다.
-              새로운 셀을 클릭한 후 적용 버튼을 눌러주세요.
-            </Typography>
-          </Alert>
+        {/* 왼쪽: 타이틀, 설명, 파일 정보 통합 영역 */}
+        <Box sx={{ width: '100%' }}>
+          <Typography variant="h4" fontWeight={700} sx={{ mb: 1, fontSize: 20 }}>
+            🔍 파싱 데이터 검증
+          </Typography>
           
-          {/* 수정된 항목 수 표시 */}
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Chip 
-              label={`총 항목: ${listData.length}개`}
-              variant="outlined"
-              color="default"
-            />
-            <Chip 
-              label={`수정됨: ${listData.reduce((count, item) => {
-                const modifiedFields = Object.keys(item).filter(key => {
-                  const field = item[key as keyof CostItem];
-                  return field && typeof field === 'object' && 'isModified' in field && field.isModified;
-                });
-                return count + modifiedFields.length;
-              }, 0)}개`}
-              variant="filled"
-              color="warning"
-            />
+          <Typography variant="body1" color="text.secondary" sx={{ fontSize: 14, lineHeight: 1.5, mb: 2 }}>
+            왼쪽에서 각 컬럼을 클릭하면 오른쪽 Excel 원본의 해당 셀이 하이라이트됩니다.
+          </Typography>
+          
+          {/* 📄 파일 정보 - 텍스트 형태 */}
+          <Box sx={{ 
+            display: 'flex', 
+            flexWrap: 'wrap', 
+            gap: 2, 
+            p: 2,
+            bgcolor: '#f8f9fa',
+            borderRadius: 1,
+            border: '1px solid #e9ecef',
+            mb: 1
+          }}>
+            <Typography variant="body2" sx={{ fontSize: 12 }}>
+              <strong>파일명:</strong> {fileName}
+            </Typography>
+            <Typography variant="body2" sx={{ fontSize: 12 }}>
+              <strong>C.O. NO.:</strong> {fileMetadata.coNumber}
+            </Typography>
+            <Typography variant="body2" sx={{ fontSize: 12 }}>
+              <strong>품번:</strong> {fileMetadata.partNumber}
+            </Typography>
+            <Typography variant="body2" sx={{ fontSize: 12 }}>
+              <strong>품명:</strong> {fileMetadata.partName}
+            </Typography>
+            <Typography variant="body2" sx={{ fontSize: 12 }}>
+              <strong>협력사:</strong> {fileMetadata.supplier}
+            </Typography>
+            <Typography variant="body2" sx={{ fontSize: 12 }}>
+              <strong>담당자:</strong> {fileMetadata.manager}
+            </Typography>
+          </Box>
+          
+          {/* 💡 안내 메시지와 공통 버튼들 */}
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            mt: 1
+          }}>
+            <Typography variant="body2" color="primary.main" sx={{ 
+              fontSize: 13, 
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5
+            }}>
+              💡 더블클릭으로 셀 재매핑: 잘못 매핑된 셀을 더블클릭하여 올바른 셀을 재선택하세요.
+            </Typography>
+            
+            {/* 🔄 공통 버튼들 (표준/리스트 모두 적용) */}
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              {/* 📝 노트작성 버튼 */}
+              <Button
+                variant="outlined"
+                color="primary"
+                size="medium"
+                startIcon={<NoteAddIcon />}
+                onClick={() => setNoteDialogOpen(true)}
+                sx={{
+                  fontWeight: 600,
+                  px: 2.5,
+                  py: 0.75,
+                  boxShadow: 2,
+                  '&:hover': {
+                    boxShadow: 4,
+                    transform: 'translateY(-1px)'
+                  },
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                노트작성 ({savedNotes.filter((n: any) => n && n.fileId === currentFileId && n.content && n.content.trim()).length})
+              </Button>
+
+              {/* 💾 전체 저장 버튼 */}
+              <Button
+                variant="contained"
+                color="success"
+                size="medium"
+                startIcon={<SaveIcon />}
+                onClick={handleSaveAllChanges}
+                disabled={getModifiedItemsCount() === 0}
+                sx={{
+                  fontWeight: 600,
+                  px: 2.5,
+                  py: 0.75,
+                  boxShadow: 2,
+                  '&:hover': {
+                    boxShadow: 4,
+                    transform: 'translateY(-1px)'
+                  },
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                전체 저장 ({getModifiedItemsCount()}개)
+              </Button>
+            </Box>
           </Box>
         </Box>
+
+
       </Box>
 
       {/* 🔄 메인 컨텐츠 (리사이즈 가능한 2분할) */}
-      <Box 
+      <Box
         ref={containerRef}
         sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}
       >
-        
+
         {/* 👈 왼쪽: 파싱된 데이터 (Analysis와 동일) */}
-        <Box sx={{ 
-          width: `${leftWidth}%`, 
-          display: 'flex', 
+        <Box sx={{
+          width: `${leftWidth}%`,
+          display: 'flex',
           flexDirection: 'column',
           borderRight: '1px solid rgba(0, 0, 0, 0.1)'
         }}>
           {/* 탭 헤더 */}
           <Box sx={{ borderBottom: '1px solid rgba(0, 0, 0, 0.1)' }}>
-            <Tabs 
-              value={selectedTab} 
+            <Tabs
+              value={selectedTab}
               onChange={(e, newValue) => setSelectedTab(newValue)}
               sx={{ px: 2 }}
             >
@@ -1458,7 +1547,7 @@ const ParsedDataReviewPage: React.FC = () => {
               <Tab label="리스트" />
             </Tabs>
           </Box>
-          
+
           {/* 탭 컨텐츠 */}
           <Box sx={{ flex: 1, overflow: 'auto', p: 3 }}>
             {renderTabContent()}
@@ -1478,9 +1567,9 @@ const ParsedDataReviewPage: React.FC = () => {
         />
 
         {/* 👉 오른쪽: Excel 원본 */}
-        <Box sx={{ 
-          width: `${100 - leftWidth}%`, 
-          display: 'flex', 
+        <Box sx={{
+          width: `${100 - leftWidth}%`,
+          display: 'flex',
           flexDirection: 'column',
           bgcolor: 'grey.50'
         }}>
@@ -1493,9 +1582,9 @@ const ParsedDataReviewPage: React.FC = () => {
                   Excel 원본
                 </Typography>
                 {highlightedCell && (
-                  <Chip 
-                    size="small" 
-                    label={`${highlightedCell} 하이라이트`} 
+                  <Chip
+                    size="small"
+                    label={`${highlightedCell} 하이라이트`}
                     color="primary"
                   />
                 )}
@@ -1509,7 +1598,7 @@ const ParsedDataReviewPage: React.FC = () => {
                 전체화면
               </Button>
             </Box>
-            
+
             {highlightedCell && (
               <Alert severity="info" sx={{ mt: 2 }}>
                 <Typography variant="body2">
@@ -1522,14 +1611,14 @@ const ParsedDataReviewPage: React.FC = () => {
 
           {/* Excel 임베디드 뷰어 */}
           <Box sx={{ flex: 1, p: 2 }}>
-            <Paper sx={{ 
-              height: '100%', 
-              display: 'flex', 
-              alignItems: 'center', 
+            <Paper sx={{
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
               justifyContent: 'center',
               bgcolor: 'white',
-              border: selectedItem 
-                ? '2px solid #0094FF' 
+              border: selectedItem
+                ? '2px solid #0094FF'
                 : '2px dashed rgba(0, 0, 0, 0.1)'
             }}>
               <Box sx={{ textAlign: 'center' }}>
@@ -1569,26 +1658,39 @@ const ParsedDataReviewPage: React.FC = () => {
       <ExcelViewerDialog
         open={excelViewerOpen}
         onClose={() => {
+          console.log(`🚪 Excel 뷰어 onClose 호출됨`);
           setExcelViewerOpen(false);
           setIsRemappingMode(false);
-          setEditingCell(null); // 재매핑 취소시 편집 상태도 초기화
+          // setEditingCell(null); // 제거: 재매핑 완료 후에만 null로 설정
+          console.log(`🚪 Excel 뷰어 닫기 완료 (editingCell 유지)`);
         }}
         highlightedCell={highlightedCell}
         title={isRemappingMode ? `🔄 셀 재매핑${editingCell?.fieldName ? `: ${editingCell.fieldName}` : ''}` : (highlightedCell ? `Excel 원본 - ${highlightedCell} 셀` : 'Excel 원본')}
         isRemappingMode={isRemappingMode}
-        onCellSelect={handleCellRemapping}
+        onCellSelect={(newCell: string, newValue: string | number) => {
+          console.log(`📞 onCellSelect 콜백 호출: ${newCell} = ${newValue}`);
+          console.log(`🔍 현재 editingCell 상태:`, editingCell);
+          
+          if (editingCell) {
+            handleCellRemapping(newCell, newValue);
+          } else {
+            console.log(`❌ editingCell이 null이어서 재매핑 불가능`);
+            console.log(`🔧 강제로 editingCell 복구 시도...`);
+            // editingCell이 null인 경우를 위한 fallback
+          }
+        }}
       />
 
       {/* 📝 노트작성 다이얼로그 */}
-      <Dialog 
-        open={noteDialogOpen} 
-        onClose={() => setNoteDialogOpen(false)} 
-        maxWidth="md" 
+      <Dialog
+        open={noteDialogOpen}
+        onClose={() => setNoteDialogOpen(false)}
+        maxWidth="md"
         fullWidth
       >
-        <DialogTitle sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
+        <DialogTitle sx={{
+          display: 'flex',
+          alignItems: 'center',
           justifyContent: 'space-between',
           pb: 1
         }}>
@@ -1605,8 +1707,8 @@ const ParsedDataReviewPage: React.FC = () => {
           {/* 📊 현재 분석 상태 요약 */}
           <Alert severity="info" sx={{ mb: 3 }}>
             <Typography variant="body2">
-              <strong>현재 분석 상태:</strong> 총 {listData.length}개 항목 | 
-              수정 {getModifiedItemsCount()}개 | 
+              <strong>현재 분석 상태:</strong> 총 {costGroups.reduce((sum, group) => sum + group.items.length, 0)}개 항목 |
+              수정 {getModifiedItemsCount()}개 |
               총액 {costGroups.reduce((sum, g) => sum + g.total, 0).toLocaleString()}원
               {highlightedCell && ` | 선택셀: ${highlightedCell}`}
             </Typography>
@@ -1668,30 +1770,33 @@ const ParsedDataReviewPage: React.FC = () => {
           />
 
           {/* 📋 노트 히스토리 (다이얼로그 내) */}
-          {savedNotes && savedNotes.length > 0 && savedNotes.some(note => note && note.content && note.content.trim()) && (
+          {savedNotes && savedNotes.length > 0 && savedNotes.some((note: any) => note && note.fileId === currentFileId && note.content && note.content.trim()) && (
             <>
               <Divider sx={{ my: 2 }} />
-              
-              <Box sx={{ 
+
+              <Box sx={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 mb: 2
               }}>
                 <Typography variant="subtitle2" color="text.secondary">
-                  📋 노트 히스토리 ({savedNotes.filter(n => n && n.content && n.content.trim()).length}개)
+                  📋 노트 히스토리 ({savedNotes.filter((n: any) => n && n.fileId === currentFileId && n.content && n.content.trim()).length}개)
                 </Typography>
-                
+
                 <Button
                   size="small"
                   variant="outlined"
                   color="error"
                   onClick={() => {
-                    localStorage.removeItem('cost-analysis-notes');
+                    // 현재 파일의 노트만 삭제
+                    const allParsingNotes = JSON.parse(localStorage.getItem('parsing-notes') || '[]');
+                    const otherFileNotes = allParsingNotes.filter((note: any) => note.fileId !== currentFileId);
+                    localStorage.setItem('parsing-notes', JSON.stringify(otherFileNotes));
                     setSavedNotes([]);
-                    console.log('🗑️ 노트 히스토리 초기화');
+                    console.log('🗑️ 현재 파일 노트 히스토리 초기화:', currentFileId);
                   }}
-                  sx={{ 
+                  sx={{
                     fontSize: '10px',
                     py: 0.25,
                     px: 1,
@@ -1701,15 +1806,15 @@ const ParsedDataReviewPage: React.FC = () => {
                   초기화
                 </Button>
               </Box>
-              
+
               <Box sx={{ maxHeight: 300, overflowY: 'auto', pr: 1 }}>
-                {savedNotes.filter(note => note && note.content && note.content.trim()).slice().reverse().map((note, index) => (
-                  <Paper 
-                    key={note.id} 
-                    variant="outlined" 
-                    sx={{ 
-                      p: 2, 
-                      mb: 1.5, 
+                {savedNotes.filter((note: any) => note && note.fileId === currentFileId && note.content && note.content.trim()).slice().reverse().map((note, index) => (
+                  <Paper
+                    key={note.id}
+                    variant="outlined"
+                    sx={{
+                      p: 2,
+                      mb: 1.5,
                       borderRadius: '8px',
                       transition: 'all 0.2s ease',
                       '&:hover': {
@@ -1719,40 +1824,40 @@ const ParsedDataReviewPage: React.FC = () => {
                     }}
                   >
                     {/* 노트 헤더 */}
-                    <Box sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'space-between', 
-                      mb: 1 
+                    <Box sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      mb: 1
                     }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <Chip 
-                          size="small" 
+                        <Chip
+                          size="small"
                           label={
-                            note.type === 'parsing' ? '🔍 파싱' : 
-                            note.type === 'validation' ? '✅ 검증' : 
+                            note.type === 'parsing' ? '🔍 파싱' :
+                            note.type === 'validation' ? '✅ 검증' :
                             '💡 개선'
-                          } 
+                          }
                           variant="outlined"
                           sx={{
                             fontSize: '10px',
                             height: '20px',
-                            bgcolor: 
-                              note.type === 'parsing' ? '#fff3e0' : 
-                              note.type === 'validation' ? '#e8f5e8' : 
+                            bgcolor:
+                              note.type === 'parsing' ? '#fff3e0' :
+                              note.type === 'validation' ? '#e8f5e8' :
                               '#e3f2fd',
-                            color: 
-                              note.type === 'parsing' ? '#e65100' : 
-                              note.type === 'validation' ? '#2e7d32' : 
+                            color:
+                              note.type === 'parsing' ? '#e65100' :
+                              note.type === 'validation' ? '#2e7d32' :
                               '#1565c0'
                           }}
                         />
                         {index === 0 && (
-                          <Chip 
-                            size="small" 
-                            label="최신" 
-                            sx={{ 
-                              bgcolor: '#ff5722', 
+                          <Chip
+                            size="small"
+                            label="최신"
+                            sx={{
+                              bgcolor: '#ff5722',
                               color: 'white',
                               fontSize: '9px',
                               height: '18px'
@@ -1760,8 +1865,8 @@ const ParsedDataReviewPage: React.FC = () => {
                           />
                         )}
                       </Box>
-                      
-                      <Typography variant="caption" sx={{ 
+
+                      <Typography variant="caption" sx={{
                         color: 'text.secondary',
                         fontSize: '10px',
                         fontFamily: 'monospace'
@@ -1798,7 +1903,7 @@ const ParsedDataReviewPage: React.FC = () => {
                         },
                       },
                     }}>
-                      <Typography variant="body2" sx={{ 
+                      <Typography variant="body2" sx={{
                         fontSize: 12,
                         lineHeight: 1.5,
                         color: 'text.primary',
@@ -1811,31 +1916,31 @@ const ParsedDataReviewPage: React.FC = () => {
 
                     {/* 컨텍스트 정보 (간단히) */}
                     {note.context && (
-                      <Box sx={{ 
+                      <Box sx={{
                         mt: 1,
                         pt: 1,
                         borderTop: '1px dashed #e0e0e0'
                       }}>
                         <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                           {note.context.총항목수 && (
-                            <Chip 
-                              size="small" 
+                            <Chip
+                              size="small"
                               label={`📊 ${note.context.총항목수}개`}
                               variant="outlined"
                               sx={{ fontSize: '9px', height: '16px' }}
                             />
                           )}
                           {note.context.수정된항목 > 0 && (
-                            <Chip 
-                              size="small" 
+                            <Chip
+                              size="small"
                               label={`✏️ ${note.context.수정된항목}개 수정`}
                               variant="outlined"
                               sx={{ fontSize: '9px', height: '16px' }}
                             />
                           )}
                           {note.context.highlightedCell && (
-                            <Chip 
-                              size="small" 
+                            <Chip
+                              size="small"
                               label={`🎯 ${note.context.highlightedCell}`}
                               variant="outlined"
                               sx={{ fontSize: '9px', height: '16px' }}
@@ -1855,8 +1960,8 @@ const ParsedDataReviewPage: React.FC = () => {
           <Button onClick={() => setNoteDialogOpen(false)}>
             취소
           </Button>
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             startIcon={<SendIcon />}
             onClick={handleNoteSubmit}
             disabled={!noteContent.trim()}
@@ -1868,19 +1973,17 @@ const ParsedDataReviewPage: React.FC = () => {
 
 
 
-      {/* 🔙 하단 네비게이션 - 히스토리 완전 제거 확인 */}
-      <Box sx={{ 
-        p: 3, 
-        borderTop: '1px solid rgba(0, 0, 0, 0.1)',
-        display: 'flex', 
-        justifyContent: 'flex-start',
-        bgcolor: 'background.paper'
+      {/* 🔙 하단 네비게이션 - 배경 없는 스타일 */}
+      <Box sx={{
+        p: 3,
+        display: 'flex',
+        justifyContent: 'flex-start'
       }}>
-        <Button 
-          variant="outlined" 
-          startIcon={<NavigateBefore />} 
+        <Button
+          variant="outlined"
+          startIcon={<NavigateBefore />}
           onClick={() => navigate('/parsing')}
-          sx={{ 
+          sx={{
             textTransform: 'none',
             borderColor: 'divider',
             color: 'text.primary',

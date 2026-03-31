@@ -383,152 +383,184 @@ const FileDetailDrawer: React.FC<FileDetailDrawerProps> = ({ file, onClose, onVe
                     />
                   </Box>
                   
-                  {/* 🔧 부품 주요 정보 */}
+                  {/* 📄 파일 정보 - 시각적 디자인 */}
                   <Typography sx={{ 
                     fontSize: 12, 
                     color: '#15803d',
                     fontWeight: 600,
-                    mb: 1.5
+                    mb: 1.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5
                   }}>
-                    부품 주요 정보
+                    📄 파일 정보
                   </Typography>
                   
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                    {/* 주요 부품 1 */}
-                    <Box sx={{
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {/* 파일명 - 메인 카드 */}
+                    <Box sx={{ 
                       p: 1.5,
+                      bgcolor: '#fff9e6',
                       borderRadius: '8px',
-                      bgcolor: '#f8fafc',
-                      border: '1px solid #e2e8f0'
+                      border: '1px solid #ffd740',
+                      borderLeft: '4px solid #f57c00'
                     }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                        <Typography sx={{ fontSize: 9, color: '#f57c00' }}>📁</Typography>
                         <Typography sx={{ 
-                          fontSize: 13, 
-                          fontWeight: 700,
-                          color: '#1e293b'
+                          fontSize: 10, 
+                          color: '#f57c00',
+                          fontWeight: 600,
+                          textTransform: 'uppercase'
                         }}>
-                          HEAD LINING ASSY
+                          파일명
                         </Typography>
-                        <Chip 
-                          label="재료비" 
-                          size="small"
-                          sx={{ 
-                            fontSize: 8, 
-                            height: 16,
-                            bgcolor: '#dbeafe', 
-                            color: '#1d4ed8',
-                            fontWeight: 600
-                          }}
-                        />
                       </Box>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-                        <Typography sx={{ color: '#64748b', fontWeight: 500 }}>
-                          수량: 1개
+                      <Typography sx={{ 
+                        fontSize: 13, 
+                        fontWeight: 700,
+                        color: '#1a1a1a'
+                      }}>
+                        {file?.name || 'DOOR_TRIM.xlsx'}
+                      </Typography>
+                    </Box>
+
+                    {/* 주문/품번 정보 - 2열 */}
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Box sx={{ 
+                        flex: 1,
+                        p: 1.2,
+                        bgcolor: '#e3f2fd',
+                        borderRadius: '6px',
+                        border: '1px solid #90caf9'
+                      }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                          <Typography sx={{ fontSize: 9 }}>🏷️</Typography>
+                          <Typography sx={{ 
+                            fontSize: 9, 
+                            color: '#1565c0',
+                            fontWeight: 600
+                          }}>
+                            C.O. NO.
+                          </Typography>
+                        </Box>
+                        <Typography sx={{ 
+                          fontSize: 11, 
+                          fontWeight: 600,
+                          color: '#0d47a1'
+                        }}>
+                          CO-2024-001
                         </Typography>
-                        <Typography sx={{ color: '#0f172a', fontWeight: 600 }}>
-                          ₩285,000
+                      </Box>
+                      
+                      <Box sx={{ 
+                        flex: 1,
+                        p: 1.2,
+                        bgcolor: '#f3e5f5',
+                        borderRadius: '6px',
+                        border: '1px solid #ce93d8'
+                      }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                          <Typography sx={{ fontSize: 9 }}>🔢</Typography>
+                          <Typography sx={{ 
+                            fontSize: 9, 
+                            color: '#7b1fa2',
+                            fontWeight: 600
+                          }}>
+                            품번
+                          </Typography>
+                        </Box>
+                        <Typography sx={{ 
+                          fontSize: 11, 
+                          fontWeight: 600,
+                          color: '#4a148c'
+                        }}>
+                          HL-2024-001
                         </Typography>
                       </Box>
                     </Box>
 
-                    {/* 주요 부품 2 */}
-                    <Box sx={{
+                    {/* 품명 - 풀 너비 */}
+                    <Box sx={{ 
                       p: 1.5,
+                      bgcolor: '#e8f5e8',
                       borderRadius: '8px',
-                      bgcolor: '#f8fafc',
-                      border: '1px solid #e2e8f0'
+                      border: '1px solid #a5d6a7'
                     }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                        <Typography sx={{ fontSize: 9 }}>📦</Typography>
                         <Typography sx={{ 
-                          fontSize: 13, 
-                          fontWeight: 700,
-                          color: '#1e293b'
+                          fontSize: 10, 
+                          color: '#2e7d32',
+                          fontWeight: 600,
+                          textTransform: 'uppercase'
                         }}>
-                          DOOR TRIM L/H
+                          품명
                         </Typography>
-                        <Chip 
-                          label="가공비" 
-                          size="small"
-                          sx={{ 
-                            fontSize: 8, 
-                            height: 16,
-                            bgcolor: '#fef3c7', 
-                            color: '#d97706',
-                            fontWeight: 600
-                          }}
-                        />
                       </Box>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-                        <Typography sx={{ color: '#64748b', fontWeight: 500 }}>
-                          수량: 2개
+                      <Typography sx={{ 
+                        fontSize: 12, 
+                        fontWeight: 700,
+                        color: '#1b5e20'
+                      }}>
+                        HEAD LINING ASSY
+                      </Typography>
+                    </Box>
+
+                    {/* 협력사/담당자 - 2열 */}
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Box sx={{ 
+                        flex: 1,
+                        p: 1.2,
+                        bgcolor: '#fff3e0',
+                        borderRadius: '6px',
+                        border: '1px solid #ffcc80'
+                      }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                          <Typography sx={{ fontSize: 9 }}>🏢</Typography>
+                          <Typography sx={{ 
+                            fontSize: 9, 
+                            color: '#ef6c00',
+                            fontWeight: 600
+                          }}>
+                            협력사
+                          </Typography>
+                        </Box>
+                        <Typography sx={{ 
+                          fontSize: 11, 
+                          fontWeight: 600,
+                          color: '#e65100'
+                        }}>
+                          대리(주)
                         </Typography>
-                        <Typography sx={{ color: '#0f172a', fontWeight: 600 }}>
-                          ₩156,000
+                      </Box>
+                      
+                      <Box sx={{ 
+                        flex: 1,
+                        p: 1.2,
+                        bgcolor: '#fce4ec',
+                        borderRadius: '6px',
+                        border: '1px solid #f8bbd9'
+                      }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                          <Typography sx={{ fontSize: 9 }}>👤</Typography>
+                          <Typography sx={{ 
+                            fontSize: 9, 
+                            color: '#c2185b',
+                            fontWeight: 600
+                          }}>
+                            담당자
+                          </Typography>
+                        </Box>
+                        <Typography sx={{ 
+                          fontSize: 11, 
+                          fontWeight: 600,
+                          color: '#880e4f'
+                        }}>
+                          원장수
                         </Typography>
                       </Box>
                     </Box>
-
-                    {/* 주요 부품 3 */}
-                    <Box sx={{
-                      p: 1.5,
-                      borderRadius: '8px',
-                      bgcolor: '#f8fafc',
-                      border: '1px solid #e2e8f0'
-                    }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-                        <Typography sx={{ 
-                          fontSize: 13, 
-                          fontWeight: 700,
-                          color: '#1e293b'
-                        }}>
-                          CONSOLE BOX ASSY
-                        </Typography>
-                        <Chip 
-                          label="경비" 
-                          size="small"
-                          sx={{ 
-                            fontSize: 8, 
-                            height: 16,
-                            bgcolor: '#dcfce7', 
-                            color: '#059669',
-                            fontWeight: 600
-                          }}
-                        />
-                      </Box>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-                        <Typography sx={{ color: '#64748b', fontWeight: 500 }}>
-                          수량: 1개
-                        </Typography>
-                        <Typography sx={{ color: '#0f172a', fontWeight: 600 }}>
-                          ₩78,500
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Box>
-
-                  {/* 총합계 */}
-                  <Box sx={{ 
-                    mt: 2, 
-                    pt: 1.5, 
-                    borderTop: '1px solid #dcfce7',
-                    display: 'flex', 
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}>
-                    <Typography sx={{ 
-                      fontSize: 13, 
-                      color: '#15803d',
-                      fontWeight: 700
-                    }}>
-                      총 원가
-                    </Typography>
-                    <Typography sx={{ 
-                      fontSize: 16, 
-                      color: '#0f172a',
-                      fontWeight: 800
-                    }}>
-                      ₩519,500
-                    </Typography>
                   </Box>
                 </Box>
               </Box>

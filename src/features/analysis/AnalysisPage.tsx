@@ -46,9 +46,10 @@ import React from 'react';
 import {
   Box, Typography, Paper, Button, Chip, Popover, Tabs, Tab,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  TextField, ClickAwayListener,
+  TextField, ClickAwayListener, Dialog, DialogTitle, DialogContent, 
+  DialogActions, Select, MenuItem, FormControl, InputLabel, Alert, IconButton
 } from '@mui/material';
-import { NavigateNext, NavigateBefore } from '@mui/icons-material';
+import { NavigateNext, NavigateBefore, NoteAdd as NoteAddIcon, Close as CloseIcon } from '@mui/icons-material';
 import { C } from '../../shared/constants/colors';
 import { costGroups, summaryRows } from './data/costGroups';
 import { listData } from './data/listData';
@@ -74,8 +75,41 @@ const AnalysisPage: React.FC = () => {
     originalViewOpen, setOriginalViewOpen,
     highlightedCell,
     calculationAnchor, setCalculationAnchor,
+    noteDialogOpen, setNoteDialogOpen,
+    noteContent, setNoteContent,
+    noteType, setNoteType,
+    savedNotes, setSavedNotes,
+    totalNotesCount,
+    updateTotalNotesCount,
     startEdit, isOverhead, handleCellClick, handleAmountClick,
   } = useAnalysisPage();
+
+  // 📝 노트작성 관련 핸들러
+  const handleNoteSubmit = () => {
+    if (!noteContent.trim()) return;
+
+    const newNote = {
+      id: Date.now().toString(),
+      type: noteType,
+      content: noteContent,
+      timestamp: new Date().toISOString(),
+      page: 'analysis',
+      fileName: 'HEAD_LINING_원가계산서.xlsx'
+    };
+
+    setSavedNotes(prev => [...prev, newNote]);
+    
+    // localStorage에 저장 (analysis 페이지용)
+    const existingNotes = JSON.parse(localStorage.getItem('analysis-notes') || '[]');
+    existingNotes.push(newNote);
+    localStorage.setItem('analysis-notes', JSON.stringify(existingNotes));
+    
+    setNoteContent('');
+    setNoteDialogOpen(false);
+    
+    // 노트 개수 업데이트
+    updateTotalNotesCount();
+  };
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: C.bg }}>
@@ -142,8 +176,17 @@ const AnalysisPage: React.FC = () => {
           </Paper>
         </Box>
 
-        {/* 원본보기 버튼 (공통) */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+        {/* 노트작성 & 원본보기 버튼 (공통) */}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mb: 2 }}>
+          <Button 
+            variant="outlined" 
+            size="small" 
+            startIcon={<NoteAddIcon />}
+            onClick={() => setNoteDialogOpen(true)} 
+            sx={{ ...btnOutlineSx, fontSize: 12 }}
+          >
+            📝 노트작성 ({totalNotesCount})
+          </Button>
           <Button variant="outlined" size="small" onClick={() => setOriginalViewOpen(true)} sx={{ ...btnOutlineSx, fontSize: 12 }}>
             📄 원본보기
           </Button>
@@ -365,8 +408,85 @@ const AnalysisPage: React.FC = () => {
           // excelFile={uploadedFile} // 업로드된 File 객체 (향후 기능)
         />
 
+        {/* 📝 노트작성 다이얼로그 */}
+        <Dialog
+          open={noteDialogOpen}
+          onClose={() => setNoteDialogOpen(false)}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            pb: 1
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <NoteAddIcon color="primary" />
+              <Typography variant="h6">📝 분석 노트 작성</Typography>
+            </Box>
+            <IconButton onClick={() => setNoteDialogOpen(false)} size="small">
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+
+          <DialogContent sx={{ pt: 1 }}>
+            {/* 📊 현재 분석 상태 요약 */}
+            <Alert severity="info" sx={{ mb: 3 }}>
+              <Typography variant="body2">
+                <strong>분석 페이지:</strong> HEAD_LINING_원가계산서.xlsx |
+                총 {listData.length}개 항목 분석 중
+              </Typography>
+            </Alert>
+
+            {/* 🎯 노트 유형 선택 */}
+            <FormControl fullWidth sx={{ mb: 3 }}>
+              <InputLabel>노트 유형</InputLabel>
+              <Select
+                value={noteType}
+                label="노트 유형"
+                onChange={(e) => setNoteType(e.target.value)}
+              >
+                <MenuItem value="analysis">📊 분석 결과</MenuItem>
+                <MenuItem value="anomaly">⚠️ 이상치 발견</MenuItem>
+                <MenuItem value="calculation">🧮 계산 검증</MenuItem>
+                <MenuItem value="improvement">💡 개선 제안</MenuItem>
+              </Select>
+            </FormControl>
+
+            {/* 📝 노트 내용 작성 */}
+            <TextField
+              fullWidth
+              multiline
+              rows={4}
+              label="노트 내용"
+              placeholder="분석 결과, 이상치, 개선사항 등을 자유롭게 기록하세요..."
+              value={noteContent}
+              onChange={(e) => setNoteContent(e.target.value)}
+              sx={{ mb: 2 }}
+            />
+          </DialogContent>
+
+          <DialogActions>
+            <Button onClick={() => setNoteDialogOpen(false)}>
+              취소
+            </Button>
+            <Button 
+              variant="contained" 
+              onClick={handleNoteSubmit}
+              disabled={!noteContent.trim()}
+            >
+              노트 저장
+            </Button>
+          </DialogActions>
+        </Dialog>
+
         {/* Navigation */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-start', mt: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-start', gap: 1, mt: 3 }}>
+          <Button variant="outlined" startIcon={<NavigateBefore />} onClick={() => navigate('/parsing_card')}
+            sx={{ textTransform: 'none', borderColor: C.border, color: C.dark }}>
+            목록으로
+          </Button>
           <Button variant="outlined" startIcon={<NavigateBefore />} onClick={() => navigate('/verification')}
             sx={{ textTransform: 'none', borderColor: C.border, color: C.dark }}>
             검증으로

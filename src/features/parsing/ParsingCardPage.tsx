@@ -328,7 +328,7 @@ const FileCard: React.FC<{
               <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid #dcfce7' }}>
                 <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: 'center' }}>
                   <Chip 
-                    label="재료비" 
+                    label="재료비 (4건)" 
                     size="small" 
                     sx={{ 
                       fontSize: 9, 
@@ -340,7 +340,7 @@ const FileCard: React.FC<{
                     }} 
                   />
                   <Chip 
-                    label="가공비" 
+                    label="가공비 (3건)" 
                     size="small" 
                     sx={{ 
                       fontSize: 9, 
@@ -352,7 +352,7 @@ const FileCard: React.FC<{
                     }} 
                   />
                   <Chip 
-                    label="경비" 
+                    label="경비 (2건)" 
                     size="small" 
                     sx={{ 
                       fontSize: 9, 
@@ -437,8 +437,9 @@ const FileCard: React.FC<{
                 textTransform: 'none', 
                 borderRadius: '8px', 
                 py: 1,
-                px: 2,
-                minWidth: 'auto',
+                px: 3,
+                minWidth: 120,
+                whiteSpace: 'nowrap',
                 borderColor: '#0064ff',
                 color: '#0064ff',
                 '&:hover': { 
@@ -484,8 +485,9 @@ const FileCard: React.FC<{
                 textTransform: 'none', 
                 borderRadius: '8px', 
                 py: 1,
-                px: 2,
-                minWidth: 'auto',
+                px: 3,
+                minWidth: 120,
+                whiteSpace: 'nowrap',
                 borderColor: '#0064ff',
                 color: '#0064ff',
                 '&:hover': { 
@@ -527,8 +529,9 @@ const FileCard: React.FC<{
                 textTransform: 'none', 
                 borderRadius: '8px', 
                 py: 1,
-                px: 2,
-                minWidth: 'auto',
+                px: 3,
+                minWidth: 120,
+                whiteSpace: 'nowrap',
                 borderColor: '#0064ff',
                 color: '#0064ff',
                 '&:hover': { 
@@ -574,8 +577,9 @@ const FileCard: React.FC<{
                 textTransform: 'none', 
                 borderRadius: '8px', 
                 py: 1,
-                px: 2,
-                minWidth: 'auto',
+                px: 3,
+                minWidth: 120,
+                whiteSpace: 'nowrap',
                 borderColor: '#0064ff',
                 color: '#0064ff',
                 '&:hover': { 
@@ -902,7 +906,7 @@ ${currentFile?.status === 'extracting' ? `
               <Grid item xs={12} sm={6} lg={4} key={file.id}>
                 <FileCard
                   file={file}
-                  onVerify={() => navigate('/verification')}
+                  onVerify={() => navigate(`/verification?fileId=${file.id}&fileName=${encodeURIComponent(file.name)}`)}
                   onAnalysis={() => navigate('/analysis')}
                   onDetail={() => setDrawerFile(file)}
                   onRetry={() => {

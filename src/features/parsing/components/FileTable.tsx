@@ -17,9 +17,11 @@ interface FileTableProps {
   onToggleAll: () => void;
   onSort: (field: SortField) => void;
   onRowClick: (file: FileItem) => void;
-  onVerify: () => void;
+  onVerify: (fileId: string, fileName: string) => void;
   onAnalysis: () => void;
   onFailedDetail: (file: FileItem) => void;
+  onNoteClick: (fileId: string) => void;
+  getNoteCount: (fileId: string) => number;
 }
 
 const thSx = { fontSize: 11, fontWeight: 600, color: '#86868b', py: 1.5 };
@@ -30,6 +32,7 @@ const SortIcon: React.FC<{ field: SortField; active: SortField | null; direction
 const FileTable: React.FC<FileTableProps> = ({
   files, selectedIds, sortField, sortDirection,
   onToggleSelect, onToggleAll, onSort, onRowClick, onVerify, onAnalysis, onFailedDetail,
+  onNoteClick, getNoteCount,
 }) => {
   const columns: { key: SortField; label: string; width?: number }[] = [
     { key: 'name', label: '문서명', width: 200 },
@@ -59,7 +62,7 @@ const FileTable: React.FC<FileTableProps> = ({
                   </Box>
                 </TableCell>
               ))}
-              <TableCell sx={{ ...thSx, width: 160 }}>액션</TableCell>
+              <TableCell sx={{ ...thSx, width: 220 }}>액션</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -94,24 +97,50 @@ const FileTable: React.FC<FileTableProps> = ({
                   <TableCell sx={{ fontSize: 13 }}>{f.department || '—'}</TableCell>
                   <TableCell sx={{ fontSize: 13 }}>{f.uploadDate}</TableCell>
                   <TableCell onClick={e => e.stopPropagation()}>
-                    {f.status === 'complete' && (
-                      <Button size="small" variant="contained"
-                        sx={{ fontSize: 12, textTransform: 'none', bgcolor: C.blue, borderRadius: '6px', boxShadow: 'none', '&:hover': { bgcolor: '#0077ED' } }}
-                        onClick={onVerify}>검증하기</Button>
-                    )}
-                    {f.status === 'extracting' && (
-                      <Button size="small" variant="outlined" disabled sx={{ fontSize: 12, textTransform: 'none', borderRadius: '6px' }}>상세보기</Button>
-                    )}
-                    {f.status === 'failed' && (
-                      <Button size="small" variant="outlined"
-                        sx={{ fontSize: 12, textTransform: 'none', borderRadius: '6px', color: C.red, borderColor: C.red }}
-                        onClick={e => { e.stopPropagation(); onFailedDetail(f); }}>추출실패</Button>
-                    )}
-                    {f.status === 'analyzing' && (
-                      <Button size="small" variant="contained"
-                        sx={{ fontSize: 12, textTransform: 'none', bgcolor: C.blue, borderRadius: '6px', boxShadow: 'none' }}
-                        onClick={onAnalysis}>상세보기</Button>
-                    )}
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                      {/* 📝 노트 버튼 - 모든 상태에서 표시 */}
+                      <Button 
+                        size="small" 
+                        variant="outlined"
+                        onClick={() => onNoteClick(f.id.toString())}
+                        sx={{ 
+                          fontSize: 11,
+                          minWidth: 'auto',
+                          px: 1,
+                          py: 0.5,
+                          textTransform: 'none',
+                          borderRadius: '6px',
+                          borderColor: C.blue,
+                          color: C.blue,
+                          '&:hover': {
+                            borderColor: '#0077ED',
+                            bgcolor: 'rgba(0, 100, 255, 0.04)'
+                          }
+                        }}
+                      >
+                        📝 노트({getNoteCount(f.id.toString())})
+                      </Button>
+
+                      {/* 메인 액션 버튼 */}
+                      {f.status === 'complete' && (
+                        <Button size="small" variant="contained"
+                          sx={{ fontSize: 12, textTransform: 'none', bgcolor: C.blue, borderRadius: '6px', boxShadow: 'none', '&:hover': { bgcolor: '#0077ED' } }}
+                          onClick={() => onVerify(f.id.toString(), f.name)}>검증하기</Button>
+                      )}
+                      {f.status === 'extracting' && (
+                        <Button size="small" variant="outlined" disabled sx={{ fontSize: 12, textTransform: 'none', borderRadius: '6px' }}>처리중</Button>
+                      )}
+                      {f.status === 'failed' && (
+                        <Button size="small" variant="outlined"
+                          sx={{ fontSize: 12, textTransform: 'none', borderRadius: '6px', color: C.red, borderColor: C.red }}
+                          onClick={e => { e.stopPropagation(); onFailedDetail(f); }}>추출실패</Button>
+                      )}
+                      {f.status === 'analyzing' && (
+                        <Button size="small" variant="contained"
+                          sx={{ fontSize: 12, textTransform: 'none', bgcolor: C.blue, borderRadius: '6px', boxShadow: 'none' }}
+                          onClick={onAnalysis}>상세보기</Button>
+                      )}
+                    </Box>
                   </TableCell>
                 </TableRow>
               );

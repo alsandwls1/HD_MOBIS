@@ -423,31 +423,54 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
     }
   };
 
-  // 🎯 셀 클릭 핸들러 (재매핑 모드)
+  // 🎯 셀 클릭 핸들러 (재매핑 모드) - 디버깅 강화
   const handleCellClick = (rowIndex: number, colIndex: number, cellValue: string | number) => {
-    if (!isRemappingMode) return;
+    console.log(`🖱️ 셀 클릭됨: 행${rowIndex+1}, 열${colIndex}, 값=${cellValue}`);
+    console.log(`재매핑 모드 상태: ${isRemappingMode}`);
+    
+    if (!isRemappingMode) {
+      console.log('❌ 재매핑 모드가 아니므로 셀 선택 무시');
+      return;
+    }
     
     const cellAddress = `${getExcelColumnHeader(colIndex)}${rowIndex + 1}`;
     
-    setSelectedCell({
+    const newSelectedCell = {
       row: rowIndex,
       col: colIndex,
       cell: cellAddress,
       value: cellValue
-    });
+    };
     
     console.log(`🎯 셀 선택: ${cellAddress} = ${cellValue}`);
+    console.log('새로 선택된 셀 객체:', newSelectedCell);
+    
+    setSelectedCell(newSelectedCell);
   };
 
-  // ✅ 선택된 셀 적용
+  // ✅ 선택된 셀 적용 (디버깅 강화)
   const handleSaveSelectedCell = () => {
-    if (!selectedCell || !onCellSelect) return;
+    console.log('🚨 적용 버튼 클릭됨!');
+    console.log('selectedCell:', selectedCell);
+    console.log('onCellSelect:', typeof onCellSelect);
     
+    if (!selectedCell) {
+      console.log('❌ selectedCell이 없음');
+      return;
+    }
+    
+    if (!onCellSelect) {
+      console.log('❌ onCellSelect 콜백이 없음');
+      return;
+    }
+    
+    console.log(`🔄 onCellSelect 호출 시작: ${selectedCell.cell} = ${selectedCell.value}`);
     onCellSelect(selectedCell.cell, selectedCell.value);
     console.log(`✅ 셀 재매핑 적용 완료: ${selectedCell.cell} = ${selectedCell.value}`);
     
     // 성공 피드백 후 닫기
     setTimeout(() => {
+      console.log('🚪 Excel 뷰어 닫기');
       onClose();
     }, 500);
   };
