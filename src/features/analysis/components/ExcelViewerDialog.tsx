@@ -31,7 +31,7 @@
  * - Error Boundary 및 Fallback 처리
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import {
   Dialog,
@@ -111,7 +111,7 @@ interface SelectedCellProps {
   isHighlighted:boolean;
   isSelected:boolean;
   isRemappingMode:boolean;
-  onCellClick: () => void;
+  onCellClick: (rowIndex: number, colIndex: number, cell: any) => void;
   colSpan: number;
 }
 
@@ -306,8 +306,8 @@ const SelectedCellInfo = React.memo(({
 } : SelectedCellProps) => {
   return (
     <TableCell 
-      key={colIndex}
-      onClick={onCellClick}
+      id={isHighlighted ? `excel-selected-cell-${rowIndex}-${colIndex}` : undefined}
+      onClick={() => onCellClick(rowIndex, colIndex, cell)}
       sx={{
         ...cellStyle,
         ...(isRemappingMode && {
@@ -348,7 +348,6 @@ const SelectedCellInfo = React.memo(({
           fontSize: 14
         })
       }}
-      colSpan={rowIndex === 0 && colIndex === 0 ? 7 : 1}
     >
       {typeof cell === 'number' ? 
         cell.toLocaleString() : 
@@ -356,7 +355,15 @@ const SelectedCellInfo = React.memo(({
       }
     </TableCell>
   );
-})
+}, (prevProps, nextProps) => {
+  // React.memo의 두번째 인자로 비교 함수를 넣어 props값을 비교 => true: 렌더링 스킵, false: 다시 렌더링
+  return prevProps.isHighlighted === nextProps.isHighlighted &&
+         prevProps.isSelected === nextProps.isSelected &&
+         prevProps.isRemappingMode === nextProps.isRemappingMode &&
+         prevProps.cell === nextProps.cell &&
+         prevProps.rowIndex === nextProps.rowIndex &&
+         prevProps.colIndex === nextProps.colIndex
+});
 
 const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({ 
   open, 
@@ -399,13 +406,16 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
     return { row: rowNum, col: colNum };
   };
   
-  // 🎯 변환된 하이라이트 셀
-  const highlightedPosition = convertCellAddress(highlightedCell);
   const [isLoading, setIsLoading] = useState(true);
   const [workbook, setWorkbook] = useState<ExcelWorkbook | null>(null);
   const [currentSheetIndex, setCurrentSheetIndex] = useState(0);
   const [error, setError] = useState<string>('');
   const [dialogSize, setDialogSize] = useState({ width: '90vw', height: '85vh' });
+  
+  // 🎯 변환된 하이라이트 셀 - 선택한 시트에만 셀 하이라이트 적용
+  const highlightedPosition = 
+    (workbook && selectedSheet && workbook.sheets[currentSheetIndex].name !== selectedSheet)
+      ? null : convertCellAddress(highlightedCell);
   
   // 🔧 재매핑 모드 상태
   const [selectedCell, setSelectedCell] = useState<{ row: number; col: number; cell: string; value: string | number } | null>(null);
@@ -466,6 +476,18 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
     }
   }, [selectedSheet, workbook]);
 
+  // 엑셀 선택된 셀로 스크롤 이동
+  useEffect(() => {
+    if(highlightedPosition) {
+      const tempCell = document.getElementById(
+        `excel-selected-cell-${highlightedPosition?.row}-${highlightedPosition?.col}`
+      );
+      if(tempCell) {
+        tempCell.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center'});
+      }
+    }
+  }, [highlightedPosition]);
+
   // 📊 현재 시트 데이터 가져오기
   const currentSheetData = workbook?.sheets[currentSheetIndex]?.data || [];
   const currentSheetName = workbook?.sheets[currentSheetIndex]?.name || 'Sheet1';
@@ -516,30 +538,51 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
     }
   };
 
+  // 2026.04.01_kjm 백업용으로 주석처리
   // 🎯 셀 클릭 핸들러 (재매핑 모드) - 디버깅 강화
-  const handleCellClick = (rowIndex: number, colIndex: number, cellValue: string | number) => {
+  // const handleCellClick = (rowIndex: number, colIndex: number, cellValue: string | number) => {
+  //   console.log(`🖱️ 셀 클릭됨: 행${rowIndex+1}, 열${colIndex}, 값=${cellValue}`);
+  //   console.log(`재매핑 모드 상태: ${isRemappingMode}`);
+  //   if (!isRemappingMode) {
+  //     console.log('❌ 재매핑 모드가 아니므로 셀 선택 무시');
+  //     return;
+  //   }
+  //   const cellAddress = `${getExcelColumnHeader(colIndex)}${rowIndex + 1}`;
+  //   const newSelectedCell = {
+  //     row: rowIndex,
+  //     col: colIndex,
+  //     cell: cellAddress,
+  //     value: cellValue
+  //   };
+  //   console.log(`🎯 셀 선택: ${cellAddress} = ${cellValue}`);
+  //   console.log('새로 선택된 셀 객체:', newSelectedCell);
+  //   setSelectedCell(newSelectedCell);
+  // };
+
+  // 🎯 셀 클릭 핸들러 (재매핑 모드) - 디버깅 강화
+  // - isRemappingMode가 바뀔때만 함수를 재생성해야하므로 useCallback을 사용
+  const handleCellClick = useCallback((rowIndex: number, colIndex: number, cellValue: string | number) => {
     console.log(`🖱️ 셀 클릭됨: 행${rowIndex+1}, 열${colIndex}, 값=${cellValue}`);
     console.log(`재매핑 모드 상태: ${isRemappingMode}`);
-    
+
     if (!isRemappingMode) {
       console.log('❌ 재매핑 모드가 아니므로 셀 선택 무시');
       return;
     }
-    
+
     const cellAddress = `${getExcelColumnHeader(colIndex)}${rowIndex + 1}`;
-    
     const newSelectedCell = {
       row: rowIndex,
       col: colIndex,
       cell: cellAddress,
       value: cellValue
     };
-    
+
     console.log(`🎯 셀 선택: ${cellAddress} = ${cellValue}`);
     console.log('새로 선택된 셀 객체:', newSelectedCell);
-    
+
     setSelectedCell(newSelectedCell);
-  };
+  }, [isRemappingMode]);
 
   // ✅ 선택된 셀 적용 (디버깅 강화)
   const handleSaveSelectedCell = () => {
@@ -754,7 +797,7 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
                   
                   return (
                     <SelectedCellInfo
-                      key={colIndex}
+                      key={`${rowIndex}_${colIndex}`}
                       cell={cell}
                       rowIndex={rowIndex}
                       colIndex={colIndex}
@@ -762,7 +805,7 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
                       isHighlighted={isHighlighted}
                       isSelected={isSelected}
                       isRemappingMode={isRemappingMode}
-                      onCellClick={() => handleCellClick(rowIndex, colIndex, cell)}
+                      onCellClick={handleCellClick}
                       colSpan={rowIndex === 0 && colIndex === 0 ? 7 : 1}
                     />
                   );

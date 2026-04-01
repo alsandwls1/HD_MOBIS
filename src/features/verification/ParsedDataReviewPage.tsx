@@ -569,9 +569,10 @@ const ParsedDataReviewPage: React.FC = () => {
 
   // ✅ 셀 클릭 핸들러 (Excel 하이라이트만)
   const handleCellClick = (item: CostItem, cell: string, value: string | number) => {
-    setSelectedSheet(item.sheetName || '');
     setSelectedItem(item);
+    setSelectedSheet(item.sheetName || '');
     setHighlightedCell(cell);
+
     console.log(`🎯 Excel 셀 ${cell} 하이라이트 - 값: ${value}`);
   };
 
@@ -1562,11 +1563,17 @@ const ParsedDataReviewPage: React.FC = () => {
               </Button>
             </Box>
 
-            {highlightedCell && (
+            {highlightedCell ? (
               <Alert severity="info" sx={{ mt: 2 }}>
                 <Typography variant="body2">
                   Excel <strong>{highlightedCell}</strong> 셀이 선택되었습니다.
                   오른쪽 Excel 뷰어에서 해당 위치를 확인하세요.
+                </Typography>
+              </Alert>
+            ) : (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                <Typography variant="body2">
+                  카테고리별 원가 분석에서 선택한 셀을 Excel 뷰어에서 확인할 수 있습니다.
                 </Typography>
               </Alert>
             )}
