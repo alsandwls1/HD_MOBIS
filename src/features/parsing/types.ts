@@ -12,6 +12,7 @@ export interface FileItem {
   sheets?: number;
   uploader?: string;
   department?: string;
+  filePath?: string;
 }
 
 export interface UploadQueueItem {

@@ -136,6 +136,7 @@ const ParsedDataReviewPage: React.FC = () => {
   // 📄 파일 정보 (URL 파라미터에서 가져옴)
   const fileId = searchParams.get('fileId') || 'demo_file_001';
   const fileName = searchParams.get('fileName') || 'sample_data.xlsx';
+  const filePath = searchParams.get('filePath') || '';
 
   // 📄 파일 메타 정보 (실제로는 파싱된 데이터나 API에서 가져와야 함)
   const [fileMetadata, setFileMetadata] = useState({
@@ -1586,7 +1587,7 @@ const ParsedDataReviewPage: React.FC = () => {
               open={true}
               onClose={()=>{}}
               fileName={fileName}
-              excelUrl={`${process.env.PUBLIC_URL}/sample_excel/${fileName}`}
+              {...(filePath && {excelUrl:`${process.env.PUBLIC_URL}/${filePath}/${fileName}`})}
               highlightedCell={highlightedCell}
               selectedSheet={selectedSheet}
               isRemappingMode={isRemappingMode}

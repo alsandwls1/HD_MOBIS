@@ -17,7 +17,7 @@ interface FileTableProps {
   onToggleAll: () => void;
   onSort: (field: SortField) => void;
   onRowClick: (file: FileItem) => void;
-  onVerify: (fileId: string, fileName: string) => void;
+  onVerify: (fileId: string, fileName: string, filePath?: string) => void;
   onAnalysis: () => void;
   onFailedDetail: (file: FileItem) => void;
   onNoteClick: (fileId: string) => void;
@@ -125,7 +125,7 @@ const FileTable: React.FC<FileTableProps> = ({
                       {f.status === 'complete' && (
                         <Button size="small" variant="contained"
                           sx={{ fontSize: 12, textTransform: 'none', bgcolor: C.blue, borderRadius: '6px', boxShadow: 'none', '&:hover': { bgcolor: '#0077ED' } }}
-                          onClick={() => onVerify(f.id.toString(), f.name)}>검증하기</Button>
+                          onClick={() => onVerify(f.id.toString(), f.name, f?.filePath || '')}>검증하기</Button>
                       )}
                       {f.status === 'extracting' && (
                         <Button size="small" variant="outlined" disabled sx={{ fontSize: 12, textTransform: 'none', borderRadius: '6px' }}>처리중</Button>

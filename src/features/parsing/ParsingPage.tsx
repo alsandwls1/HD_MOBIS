@@ -255,7 +255,7 @@ ${currentFile?.status === 'extracting' ? `
         onToggleAll={() => { if (selectedIds.size === filteredAndSorted.length) setSelectedIds(new Set()); else setSelectedIds(new Set(filteredAndSorted.map(f => f.id))); }}
         onSort={handleSort}
         onRowClick={f => setDrawerFile(f)}
-        onVerify={(fileId, fileName) => navigate(`/verification?fileId=${fileId}&fileName=${encodeURIComponent(fileName)}`)}
+        onVerify={(fileId, fileName, filePath) => navigate(`/verification?fileId=${fileId}&fileName=${encodeURIComponent(fileName)}&filePath=${filePath}`)}
         onAnalysis={() => navigate('/analysis')}
         onFailedDetail={f => setDrawerFile(f)}
         onNoteClick={handleNoteClick}
