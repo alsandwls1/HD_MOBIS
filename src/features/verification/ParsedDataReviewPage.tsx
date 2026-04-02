@@ -542,6 +542,8 @@ const ParsedDataReviewPage: React.FC = () => {
           hook.setExcelViewerOpen(false);
           hook.setIsRemappingMode(false);
         }}
+        fileName={hook.fileName}
+        {...(hook.filePath && { excelUrl: `${process.env.PUBLIC_URL}/${hook.filePath}/${hook.fileName}` })}
         highlightedCell={hook.highlightedCell}
         title={hook.isRemappingMode ? `🔄 셀 재매핑${hook.editingCell?.fieldName ? `: ${hook.editingCell.fieldName}` : ''}` : (hook.highlightedCell ? `Excel 원본 - ${hook.highlightedCell} 셀` : 'Excel 원본')}
         isRemappingMode={hook.isRemappingMode}
