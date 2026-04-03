@@ -90,6 +90,7 @@ interface ExcelViewerDialogProps {
   onCellSelect?: (cell: string, value: string | number) => void; // 셀 선택 콜백
   embedded?: boolean;
   selectedSheet?: string; // 시트이름
+  test?: any;// 테스트용
 }
 
 interface ExcelSheet {
