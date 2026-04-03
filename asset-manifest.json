@@ -1,10 +1,10 @@
 {
   "files": {
-    "main.js": "/HD_MOBIS/static/js/main.2b1c61d4.js",
-    "index.html": "/HD_MOBIS/index.html",
-    "main.2b1c61d4.js.map": "/HD_MOBIS/static/js/main.2b1c61d4.js.map"
+    "main.js": "/hd_mobis_presentation/static/js/main.be4c505a.js",
+    "index.html": "/hd_mobis_presentation/index.html",
+    "main.be4c505a.js.map": "/hd_mobis_presentation/static/js/main.be4c505a.js.map"
   },
   "entrypoints": [
-    "static/js/main.2b1c61d4.js"
+    "static/js/main.be4c505a.js"
   ]
 }
