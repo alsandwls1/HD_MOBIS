@@ -91,6 +91,8 @@ interface ExcelViewerDialogProps {
   embedded?: boolean;
   selectedSheet?: string; // 시트이름
   test?: any;// 테스트용
+  wookbook?: any; // 외부에서 전달받은 워크북
+  onLoadWookbook?: any; // 로딩 후 외부로 전달할 용도
 }
 
 interface ExcelSheet {
